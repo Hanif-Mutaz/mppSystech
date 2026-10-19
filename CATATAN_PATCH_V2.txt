@@ -1,0 +1,30 @@
+PATCH V2 - SINKRONISASI LINTAS URL (localStorage per-origin)
+
+AKAR MASALAH
+  localStorage terikat ke origin. http://localhost:5000, http://127.0.0.1:5000 dan
+  http://192.168.x.x:5000 masing-masing punya localStorage SENDIRI, jadi datanya berbeda.
+  Aplikasi membaca localStorage sekali saat halaman dibuka.
+
+SOLUSI
+  Server (SQLite) = satu-satunya sumber data. localStorage hanya cache.
+  - frontend/storage_boot.js (BARU): dimuat paling awal di <head> desktop & TV; menarik data
+    server SEBELUM aplikasi membaca localStorage. Di URL/origin mana pun hasilnya sama.
+    Data basi di origin itu otomatis dibuang (server menang).
+  - server_bridge.js: kirim hanya key yang berubah (PATCH), bukan seluruh snapshot, sehingga
+    dua perangkat tidak saling menimpa. Perangkat lain yang melihat versi server naik akan reload.
+  - backend.py / server.py: tambah merge_state() dan PATCH /api/state.
+  - mpp220tvMode tidak disinkronkan (setelan per-perangkat).
+
+FILE (timpa, struktur sama dengan MPP_SYNC_FIX):
+  backend.py, server.py, frontend/index.html, frontend/tv.html,
+  frontend/server_bridge.js, frontend/storage_boot.js (baru)
+  Boleh hapus frontend/tv_boot.js (sudah tidak dipakai).
+  Tidak diubah: run_server.py, data/mpp.db.
+
+URUTAN PASANG
+  1. Stop server  2. Timpa file  3. Start server
+  4. Buka SEKALI di URL/komputer yang datanya paling lengkap (data lokalnya mengisi server
+     bila server masih kosong). Setelah itu URL mana pun otomatis sama.
+  5. Bersihkan cache browser TV / tekan Ctrl+F5 sekali.
+  CATATAN: bila server SUDAH berisi data, localStorage lama di URL lain akan diganti data server.
+  Backup dulu data\mpp.db (backup_data.bat).

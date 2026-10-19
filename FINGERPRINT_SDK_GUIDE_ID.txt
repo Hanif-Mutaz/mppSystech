@@ -1,0 +1,26 @@
+PANDUAN CONTOH SDK FINGERPRINT
+==============================
+Paket menyediakan tiga contoh:
+1. examples\fingerprint_generic\send_event.py
+2. examples\digitalpersona_csharp\DigitalPersonaAdapterExample.cs
+3. examples\zkteco_push\send_zkteco_verified.py
+
+ARSITEKTUR YANG DISARANKAN
+Fingerprint reader/terminal -> SDK resmi vendor -> matching/verifikasi -> employee_code -> MPP API port 5000.
+MPP tidak perlu menerima gambar sidik jari mentah. Adapter hanya mengirim identitas hasil verifikasi.
+
+HID DIGITALPERSONA
+- Install driver/runtime dan SDK resmi HID yang sesuai reader.
+- Gunakan sample resmi SDK untuk capture, extraction, dan matching.
+- Pada callback match sukses, panggil OnVendorFingerprintMatched(employeeCode).
+
+ZKTECO
+- Untuk terminal yang mendukung Push/ADMS, integrasi vendor menerima punch/user ID.
+- Teruskan user ID tersebut ke /api/fingerprint/event.
+- Protocol/model spesifik harus mengikuti dokumentasi SDK resmi perangkat.
+
+TEST GENERIK
+1. Server MPP aktif di port 5000.
+2. Set MPP_DEVICE_TOKEN bila digunakan.
+3. Jalankan examples\fingerprint_generic\send_event.py.
+4. Cek /api/scans dan pastikan event FINGERPRINT masuk.

@@ -1,0 +1,75 @@
+MPP SERVER + TV DASHBOARD - PORT 5000
+====================================
+
+STRUKTUR
+- server.py             : route web dan REST API
+- backend.py            : SQLite, state aplikasi, QR/fingerprint event
+- run_server.py         : server produksi Waitress
+- frontend/index.html   : desktop/server admin
+- frontend/tv.html      : dashboard TV
+- frontend/server_bridge.js : sinkronisasi localStorage desktop ke server/TV
+- data/mpp.db           : database otomatis dibuat
+
+INSTALASI WINDOWS
+1. Pasang Python 3.11 atau 3.12 64-bit. Saat instalasi centang "Add Python to PATH".
+2. Ekstrak folder ini, contoh C:\MPP_Server.
+3. Klik kanan install_windows.bat > Run as administrator.
+4. Jalankan start_server.bat.
+5. Di komputer server buka: http://localhost:5000
+6. Cari IPv4 server dengan perintah: ipconfig
+7. Di TV yang satu jaringan buka: http://IP-SERVER:5000/tv
+   Contoh: http://192.168.147.74:5000/tv
+
+SCANNER QR/BARCODE
+- Scanner USB mode keyboard/HID: pasang ke desktop server, buka halaman utama, klik input Scan QR, lalu scan.
+- Setelah data lokal berubah, bridge mengirim snapshot ke server dan TV menarik pembaruan otomatis.
+- API scanner eksternal: POST /api/scan
+  JSON: {"employee_code":"12345","scan_type":"QR","device_id":"SCANNER-01"}
+
+PERSIAPAN FINGERPRINT
+- Endpoint sudah siap memakai scan_type "FINGERPRINT" dan source "fingerprint".
+- Middleware/SDK perangkat fingerprint nanti mengirim template ID atau employee code ke POST /api/scan.
+- Jangan menyimpan citra sidik jari mentah. Simpan ID/template dari SDK perangkat sesuai kebijakan perusahaan.
+
+AUTOSTART WINDOWS
+1. Tekan Win+R, ketik shell:startup.
+2. Buat shortcut ke start_server.bat di folder Startup.
+3. Atur komputer server agar tidak sleep dan gunakan IP statis/reservasi DHCP.
+
+BACKUP
+- Jalankan backup_data.bat secara berkala.
+- Backup utama adalah file data\mpp.db.
+- Jangan menyalin database ketika proses tulis sangat aktif; paling aman hentikan server dahulu.
+
+CEK
+- Health: http://localhost:5000/health
+- Desktop: http://localhost:5000/
+- TV: http://localhost:5000/tv
+
+CATATAN
+- Server hanya bind ke LAN pada port 5000. Hindari membuka port 5000 ke internet.
+- Bila TV tidak bisa membuka halaman, cek Windows Firewall dan pastikan TV/server dalam subnet yang sama.
+
+TAMBAHAN USB SCANNER DAN FINGERPRINT
+====================================
+USB HID / keyboard wedge:
+- Tidak memerlukan driver Python. Hubungkan scanner, atur suffix ENTER/CR, lalu buka halaman desktop.
+- device_bridge.js menangkap scan cepat dan mengirimkannya ke backend.
+
+USB Serial / Virtual COM:
+- pyserial dipasang otomatis oleh install_windows.bat.
+- Atur variabel Windows MPP_SCANNER_PORT=COM3 dan MPP_SCANNER_BAUD=9600 bila auto-detect gagal.
+- Cek COM port di Device Manager > Ports (COM & LPT).
+
+Fingerprint:
+- Gunakan SDK/middleware resmi perangkat untuk mengirim hasil identifikasi, bukan citra sidik jari.
+- Endpoint: POST /api/fingerprint/event
+- Header produksi: X-Device-Token: nilai MPP_DEVICE_TOKEN
+- JSON umum: {"employee_code":"22060049","device_id":"FP-01","event_time":"2026-10-17T07:30:00+07:00"}
+- Alias yang diterima: user_id, pin, atau template_id.
+- Field image, fingerprint_image, raw_template, dan template sengaja tidak disimpan.
+
+PENGUJIAN:
+- Setelah instalasi jalankan: python test_devices.py
+- Status perangkat: http://localhost:5000/api/devices/status
+- Riwayat event: http://localhost:5000/api/scans
