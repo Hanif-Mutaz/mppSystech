@@ -3,18 +3,20 @@ MPP SERVER + TV DASHBOARD - PORT 5000
 
 STRUKTUR
 - server.py             : route web dan REST API
-- backend.py            : SQLite, state aplikasi, QR/fingerprint event
+- backend.py            : PostgreSQL, state aplikasi, QR/fingerprint event
+- schema.sql            : skema database (dibuat otomatis saat server start)
+- projections.py        : mengisi tabel per entitas (employees, attendance, dst.)
 - run_server.py         : server produksi Waitress
 - frontend/index.html   : desktop/server admin
 - frontend/tv.html      : dashboard TV
 - frontend/server_bridge.js : sinkronisasi localStorage desktop ke server/TV
-- data/mpp.db           : database otomatis dibuat
+- .env                  : konfigurasi (koneksi database, token). Salin dari .env.example
 
 INSTALASI WINDOWS
 1. Pasang Python 3.11 atau 3.12 64-bit. Saat instalasi centang "Add Python to PATH".
 2. Ekstrak folder ini, contoh C:\MPP_Server.
-3. Klik kanan install_windows.bat > Run as administrator.
-4. Jalankan start_server.bat.
+3. Siapkan PostgreSQL dulu: ikuti INSTALL_POSTGRES_ID.txt.
+4. Klik kanan install_windows.bat > Run as administrator, edit .env, lalu jalankan start_server.bat.
 5. Di komputer server buka: http://localhost:5000
 6. Cari IPv4 server dengan perintah: ipconfig
 7. Di TV yang satu jaringan buka: http://IP-SERVER:5000/tv
@@ -37,9 +39,8 @@ AUTOSTART WINDOWS
 3. Atur komputer server agar tidak sleep dan gunakan IP statis/reservasi DHCP.
 
 BACKUP
-- Jalankan backup_data.bat secara berkala.
-- Backup utama adalah file data\mpp.db.
-- Jangan menyalin database ketika proses tulis sangat aktif; paling aman hentikan server dahulu.
+- Jalankan backup_data.bat secara berkala (pg_dump, aman saat server hidup). Jadwalkan lewat Task Scheduler.
+- Hasil: folder backup\mpp_TANGGAL.dump. Cara restore ada di komentar akhir backup_data.bat.
 
 CEK
 - Health: http://localhost:5000/health
@@ -70,6 +71,9 @@ Fingerprint:
 - Field image, fingerprint_image, raw_template, dan template sengaja tidak disimpan.
 
 PENGUJIAN:
-- Setelah instalasi jalankan: python test_devices.py
+- Buat database kosong khusus tes (nama harus berakhiran _test), lalu:
+    set MPP_TEST_DATABASE_URL=postgresql://mpp:PASSWORD@127.0.0.1:5432/mpp_test
+    python test_backend.py
 - Status perangkat: http://localhost:5000/api/devices/status
 - Riwayat event: http://localhost:5000/api/scans
+- Laporan (read-only): /api/report/employees?q=... dan /api/report/attendance?from=2026-10-01&to=2026-10-31&line=41SY01

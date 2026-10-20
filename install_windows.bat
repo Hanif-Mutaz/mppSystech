@@ -5,8 +5,9 @@ py -m venv .venv
 call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-netsh advfirewall firewall add rule name="MPP Server Port 5000" dir=in action=allow protocol=TCP localport=5000
-if not exist data mkdir data
+netsh advfirewall firewall add rule name="MPP Server Port 5000" dir=in action=allow protocol=TCP localport=5000 remoteip=localsubnet profile=private
+if not exist .env copy .env.example .env
 echo Instalasi selesai.
+echo Edit file .env (MPP_DATABASE_URL, MPP_DEVICE_TOKEN), lihat INSTALL_POSTGRES_ID.txt.
 echo Jalankan start_server.bat, lalu buka http://localhost:5000
 pause

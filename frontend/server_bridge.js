@@ -15,10 +15,11 @@ let pushing=false,again=false,applying=false,loadedAt=Date.now(),reloading=false
    supaya tidak memicu push/reload bolak-balik antar perangkat. */
 function norm(k,v){
   if(v==null)return v;
-  if(k!=='mpp23db'&&k!=='mppV359PersistentState')return v;
+  if(k!=='mpp23db'&&k!=='mppV359PersistentState'&&k!=='mpp2410LastConflicts')return v;
   try{const o=JSON.parse(v);
     if(k==='mpp23db'&&o&&o.__mppV34Meta)delete o.__mppV34Meta.updatedAt;
     if(k==='mppV359PersistentState'&&o)delete o.savedAt;
+    if(k==='mpp2410LastConflicts'&&Array.isArray(o))o.forEach(x=>{if(x&&typeof x==='object')delete x.checkedAt});   /* hasil cek konflik: diisi ulang tiap ~15 dtk */
     return JSON.stringify(o)}catch(e){return v}
 }
 const same=(k,a,b)=>a===b||norm(k,a)===norm(k,b);

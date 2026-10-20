@@ -1,0 +1,40 @@
+POSTGRESQL UNTUK MPP SERVER
+===========================
+
+1. PASANG POSTGRESQL (Windows)
+   - Unduh installer dari postgresql.org (versi 16 atau lebih baru), pasang dengan komponen
+     "PostgreSQL Server" dan "Command Line Tools". Catat password user postgres.
+   - Pastikan C:\Program Files\PostgreSQL\16\bin ada di PATH (untuk psql dan pg_dump).
+
+2. BUAT USER DAN DATABASE  (buka "SQL Shell (psql)" atau cmd, login sebagai postgres)
+     CREATE ROLE mpp LOGIN PASSWORD 'GANTI_PASSWORD_KUAT';
+     CREATE DATABASE mpp OWNER mpp;
+   Postgres cukup mendengarkan di localhost (default). Jangan buka port 5432 ke jaringan.
+
+3. ISI .env  (salin dari .env.example)
+     MPP_DATABASE_URL=postgresql://mpp:GANTI_PASSWORD_KUAT@127.0.0.1:5432/mpp
+     MPP_DEVICE_TOKEN=<token acak panjang>
+   Tabel dibuat otomatis saat server pertama kali start.
+
+4. MIGRASI DATA LAMA (hanya jika sebelumnya memakai data\mpp.db / SQLite)
+   - Hentikan server (stop_server.bat). Backup dulu data\mpp.db.
+   - Jalankan:  python migrate_sqlite_to_pg.py
+     (menolak jalan jika Postgres sudah berisi data; pakai --force untuk menimpa)
+   - SQLite hanya dibaca, tidak diubah. Setelah yakin, file lama boleh diarsipkan.
+   - Start server dan cek: http://localhost:5000/health  (database: postgresql)
+
+5. TABEL UNTUK LAPORAN / INTEGRASI (read-only, dibangun otomatis dari data aplikasi)
+     employees, lines, skill_matrix, attendance, assignments, app_users, audit_log, scan_events
+   Contoh:
+     SELECT line, count(*) FROM attendance WHERE work_date = current_date GROUP BY line;
+   Jangan menulis ke tabel-tabel ini secara manual: isinya dibangun ulang dari key aplikasi
+   (tabel app_kv) setiap kali berubah. Sumber data utama aplikasi tetap app_kv.
+   Tabel app_users TIDAK berisi password.
+
+6. KEAMANAN
+   - Server hanya menerima koneksi dari LAN/privat. Atur MPP_ALLOWED_NETS di .env untuk
+     membatasi lebih jauh (contoh: 192.168.147.0/24,127.0.0.0/8).
+   - Event fingerprint WAJIB memakai header X-Device-Token (= MPP_DEVICE_TOKEN). Tanpa token
+     terkonfigurasi, semua event fingerprint ditolak.
+   - CATATAN: login aplikasi (user/password) masih berjalan di sisi browser dan datanya ada di
+     key mpp28users. Password bawaan (admin/Admin123! dst.) WAJIB diganti lewat menu pengguna.
