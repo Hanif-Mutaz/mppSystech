@@ -76,8 +76,10 @@ def merge_state(changes=None, removed=None, source='desktop'):
         try: payload = json.loads(row['payload'])
         except Exception: payload = {}
         if not isinstance(payload, dict): payload = {}
+        before = dict(payload)
         for k, v in changes.items(): payload[str(k)] = v if isinstance(v, str) else json.dumps(v)
         for k in removed: payload.pop(str(k), None)
+        if payload == before: return current, current   # tidak ada perubahan nyata: jangan naikkan version
         raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
         if len(raw.encode('utf-8')) > 8_000_000: raise ValueError('payload terlalu besar')
         new_version = current + 1

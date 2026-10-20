@@ -1,0 +1,16 @@
+PATCH SINKRONISASI TV  (timpa file dengan nama sama di folder mpp_server)
+
+File berubah:
+  backend.py                 tolak payload kosong, tambah get_version()
+  server.py                  tambah GET /api/state/version
+  frontend/server_bridge.js  TV: cek versi ringan, reload saat data berubah
+  frontend/tv_boot.js        BARU: TV tarik data sebelum aplikasi membaca localStorage
+  frontend/tv.html           muat tv_boot.js, matikan klien sync lama
+  frontend/index.html        matikan klien sync lama
+
+TIDAK diubah: run_server.py (host/port tetap setelan Anda).
+
+Urutan pasang:
+  1. Stop server  2. Timpa file  3. Start server
+  4. Buka halaman DESKTOP dulu (supaya data lokal terkirim ke server)
+  5. Baru buka /tv di TV

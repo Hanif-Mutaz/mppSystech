@@ -6,8 +6,8 @@
    origin yang sedang dipakai. localStorage hanya berfungsi sebagai cache. */
 (function(){
   'use strict';
-  var LOCAL_ONLY={'mpp220tvMode':1};            /* setelan per-perangkat, tidak disinkronkan */
-  function synced(k){return typeof k==='string'&&k.toLowerCase().indexOf('mpp')===0&&!LOCAL_ONLY[k]}
+  var LOCAL_ONLY={'mpp220tvMode':1,'mppV359LastSaved':1};   /* per-perangkat / berubah tiap load (timestamp): jangan disinkronkan */
+  function synced(k){return typeof k==='string'&&k.toLowerCase().indexOf('mpp')===0&&!LOCAL_ONLY[k]&&!/lastsaved$/i.test(k)}
   window.__mppSynced=synced;
   window.__mppBase={};window.__mppBootVersion=0;window.__mppBootOK=false;window.__mppServerEmpty=false;
   try{
