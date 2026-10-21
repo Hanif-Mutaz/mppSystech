@@ -70,7 +70,30 @@ function applyRemote(p){
     softFails=0;return true
   }catch(e){console.warn('MPP apply gagal',e);return false}
 }
-function reload(){if(reloading)return;reloading=true;location.reload()}
+/* Reload otomatis dengan pengaman: alasan dicatat (console + sessionStorage 'mppReloadLog') dan bila terjadi
+   >=3 kali dalam 60 detik, reload otomatis DIHENTIKAN supaya halaman tidak loop (login -> dashboard -> login).
+   Kondisi normal tidak terpengaruh. */
+function reload(why){
+  if(reloading)return;
+  const now=Date.now();let log=[];
+  try{log=JSON.parse(sessionStorage.getItem('mppReloadLog')||'[]').filter(x=>now-x.t<60000)}catch(e){}
+  if(log.length>=3){
+    reloading=true;                                       /* berhenti total sampai halaman di-refresh manual */
+    const reasons=log.map(x=>x.why).concat(String(why||'?')).join(' | ');
+    console.error('MPP: reload otomatis berulang DIHENTIKAN. Alasan:',reasons);
+    try{
+      if(!document.getElementById('mppReloadStopped')&&document.body){
+        const d=document.createElement('div');d.id='mppReloadStopped';
+        d.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#b91c1c;color:#fff;font:600 13px/1.4 Arial,sans-serif;padding:8px 12px;text-align:center';
+        d.textContent='Sinkron ke server gagal berulang: reload otomatis dihentikan. Periksa server lalu tekan Ctrl+F5. (alasan: '+reasons+')';
+        document.body.appendChild(d)}
+    }catch(e){}
+    return}
+  log.push({t:now,why:String(why||'?')});
+  try{sessionStorage.setItem('mppReloadLog',JSON.stringify(log))}catch(e){}
+  console.warn('MPP reload:',why||'?');
+  reloading=true;location.reload()
+}
 
 async function push(){
   if(IS_TV||!bootOK)return;                              /* bootOK=false: server belum terbaca, jangan kirim apa pun */
@@ -93,7 +116,7 @@ async function check(){
   try{
     const r=await fetch('/api/state/version',{cache:'no-store'}),j=await r.json();
     if(!j||!j.ok)return;
-    if(!bootOK){reload();return}                          /* boot gagal (server tadinya mati): coba lagi dari awal */
+    if(!bootOK){reload('boot-gagal: data server belum terbaca saat halaman dibuka');return}                          /* boot gagal (server tadinya mati): coba lagi dari awal */
     if(j.version===lastVersion)return;
     /* version berubah: reload HANYA bila isi data benar-benar beda dari yang kita punya.
        (perubahan oleh diri sendiri / timestamp / nilai sama tidak boleh memicu reload -> mencegah loop) */
@@ -103,12 +126,12 @@ async function check(){
     for(const k in p)if(synced(k)&&!(k in base&&same(k,base[k],String(p[k])))){remoteChanged=true;break}
     if(!remoteChanged)for(const k in base)if(!(k in p)){remoteChanged=true;break}
     if(!remoteChanged){lastVersion=sj.version;return}
-    if(IS_TV){if(applyRemote(p)){lastVersion=sj.version;return}if(++softFails<3||Date.now()-loadedAt<10000)return;return reload()}
+    if(IS_TV){if(applyRemote(p)){lastVersion=sj.version;return}if(++softFails<3||Date.now()-loadedAt<10000)return;return reload('tv: applyRemote gagal 3x')}
     const d=diff();
     if(Object.keys(d.changes).length||d.removed.length){await push();return}   /* kirim perubahan lokal dulu */
     if(typing())return;                                   /* jangan ganggu yang sedang mengetik */
     if(applyRemote(p)){lastVersion=sj.version;return}
-    if(++softFails>=3)reload();
+    if(++softFails>=3)reload('desktop: applyRemote gagal 3x');
   }catch(e){console.warn('MPP check',e)}
 }
 
