@@ -4961,6 +4961,19 @@ body.tvMode.mpp-fit-auto .shiftDash .allocationSummary:not(#mppFit){zoom:var(--m
 body.tvMode.mpp-fit-auto .shiftDash .v238Legend:not(#mppFit){zoom:var(--mpp-hs,1)!important}
 body.tvMode.mpp-fit-auto .shiftDash .shiftDashBody > div[id$="AllocationMsg"]:not(#mppFit){zoom:var(--mpp-hs,1)!important}
 </style>
+<style id="mppSlotFixedHeight">
+/* Tinggi slot (CL/OP/INS) SAMA di semua kartu line. Slot tidak melar lagi;
+   sisa ruang kartu jadi gap kosong di bawah. Ubah angka 26px bila ingin slot lebih tinggi/rendah. */
+body.tvMode.mpp-fit-auto .shiftDash .v234LineBody:not(#mppFit){justify-content:flex-start!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235Slot:not(#mppFit),
+body.tvMode.mpp-fit-auto .shiftDash .v355-shared-slot:not(#mppFit),
+body.tvMode.mpp-fit-auto .shiftDash .v357-auto-shared:not(#mppFit){
+  flex:0 0 auto!important;
+  height:calc(26px*var(--mpp-s,1))!important;
+  min-height:calc(26px*var(--mpp-s,1))!important;
+  max-height:calc(26px*var(--mpp-s,1))!important;
+}
+</style>
 <script id="mppAutoFitScript">
 (function(){'use strict';
 /* Auto-fit: pilih jumlah kolom/baris supaya proporsi kartu tetap enak, lalu skalakan isi kartu.
