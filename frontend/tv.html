@@ -4963,17 +4963,92 @@ body.tvMode.mpp-fit-auto .shiftDash .shiftDashBody > div[id$="AllocationMsg"]:no
 </style>
 <style id="mppSlotFixedHeight">
 /* Tinggi slot (CL/OP/INS) SAMA di semua kartu line. Slot tidak melar lagi;
-   sisa ruang kartu jadi gap kosong di bawah. Ubah angka 26px bila ingin slot lebih tinggi/rendah. */
+   sisa ruang kartu jadi gap kosong di bawah. Tinggi dihitung otomatis oleh script mppSlotFixedHeightScript
+   (muat untuk kartu dengan slot terbanyak). Fallback bila script belum jalan: 22px x skala. */
 body.tvMode.mpp-fit-auto .shiftDash .v234LineBody:not(#mppFit){justify-content:flex-start!important}
 body.tvMode.mpp-fit-auto .shiftDash .v235Slot:not(#mppFit),
 body.tvMode.mpp-fit-auto .shiftDash .v355-shared-slot:not(#mppFit),
 body.tvMode.mpp-fit-auto .shiftDash .v357-auto-shared:not(#mppFit){
   flex:0 0 auto!important;
-  height:calc(26px*var(--mpp-s,1))!important;
-  min-height:calc(26px*var(--mpp-s,1))!important;
-  max-height:calc(26px*var(--mpp-s,1))!important;
+  height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+  min-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+  max-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+}
+/* Isi slot: NAMA di atas, NIK di bawah. Font mengikuti tinggi slot.
+   Kalau slot terlalu pendek (class mpp-slot-inline dipasang script), otomatis jadi satu baris. */
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson:not(#mppFit){
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:center!important;
+  gap:0!important;padding:0 calc(14px*var(--mpp-s,1)) 0 calc(5px*var(--mpp-s,1))!important;overflow:hidden!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson .v234Name:not(#mppFit){
+  order:1!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;display:block!important;
+  white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;
+  -webkit-line-clamp:unset!important;-webkit-box-orient:initial!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.52)!important;line-height:1.1!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson .v234EmpId:not(#mppFit){
+  order:2!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:100%!important;display:block!important;
+  white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.36)!important;line-height:1.1!important;opacity:.8!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .lines.mpp-slot-inline .v235SlotPerson:not(#mppFit){
+  flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:calc(4px*var(--mpp-s,1))!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .lines.mpp-slot-inline .v235SlotPerson .v234Name:not(#mppFit){
+  flex:1 1 0!important;font-size:calc(var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))*.5)!important;line-height:1.2!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .lines.mpp-slot-inline .v235SlotPerson .v234EmpId:not(#mppFit){
+  max-width:42%!important;font-size:calc(var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))*.38)!important;line-height:1.2!important;
+}
+/* Kartu TUNGGU LINE: item sama tinggi dengan slot, nama atas + NIK bawah; kalau kebanyakan bisa di-scroll. */
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-list:not(#mppFit){
+  display:flex!important;flex-direction:column!important;gap:calc(3px*var(--mpp-s,1))!important;
+  flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:none!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-list:not(#mppFit)::-webkit-scrollbar{display:none}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person:not(#mppFit){
+  display:grid!important;grid-template-columns:calc(30px*var(--mpp-s,1)) minmax(0,1fr)!important;align-items:center!important;gap:calc(4px*var(--mpp-s,1))!important;
+  flex:0 0 auto!important;margin:0!important;padding:0 calc(5px*var(--mpp-s,1)) 0 0!important;overflow:hidden!important;
+  height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;min-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;max-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person .roleName:not(#mppFit){
+  width:auto!important;min-width:0!important;max-width:none!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  padding:0!important;margin:0!important;font-size:calc(8px*var(--mpp-s,1))!important;line-height:1!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person > span:not(.roleName):not(#mppFit){
+  display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.52)!important;line-height:1.1!important;font-weight:800!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person > span:not(.roleName) b:not(#mppFit){
+  order:2!important;display:block!important;font-weight:700!important;opacity:.8!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.36)!important;line-height:1.1!important;
 }
 </style>
+<script id="mppSlotFixedHeightScript">
+(function(){'use strict';
+/* Hitung tinggi slot agar kartu dengan slot terbanyak PAS muat; semua kartu memakai tinggi yang sama. */
+function fit(){
+  document.querySelectorAll('.shiftDash:not(.hiddenView) .lines').forEach(function(g){
+    var cards=[].slice.call(g.querySelectorAll(':scope > .v234Line:not(.mpp-waiting-line)'));
+    if(!cards.length)return;
+    var n=0,body=null;
+    cards.forEach(function(c){var k=c.querySelectorAll('.v235Slot').length;if(k>n)n=k;if(!body)body=c.querySelector('.v234LineBody')});
+    if(!n||!body)return;
+    var cs=getComputedStyle(body),pad=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0),gap=parseFloat(cs.rowGap)||0;
+    var s=parseFloat(getComputedStyle(g).getPropertyValue('--mpp-s'))||1;
+    var h=Math.floor(((body.clientHeight-pad-gap*(n-1))/n)*10)/10-0.6;
+    h=Math.max(14*s,Math.min(26*s,h));
+    var v=h.toFixed(1)+'px';
+    if(g.style.getPropertyValue('--mpp-slot-h')!==v)g.style.setProperty('--mpp-slot-h',v);
+    g.classList.toggle('mpp-slot-inline',h<20.5);
+  });
+}
+window.mppSlotFit=fit;
+window.addEventListener('resize',function(){setTimeout(fit,150)});
+setInterval(fit,800);
+document.addEventListener('DOMContentLoaded',function(){setTimeout(fit,300)},{once:true});
+})();
+</script>
 <script id="mppAutoFitScript">
 (function(){'use strict';
 /* Auto-fit: pilih jumlah kolom/baris supaya proporsi kartu tetap enak, lalu skalakan isi kartu.
@@ -4986,6 +5061,13 @@ function mode(){
   try{return localStorage.getItem(KEY)==='preset'?'preset':'auto'}catch(e){return 'auto'}
 }
 function setVar(el,k,v){v=String(v);if(el.style.getPropertyValue(k)!==v)el.style.setProperty(k,v)}
+function forcedCols(){
+  var q=/[?&]cols=(auto|\d+)\b/.exec(location.search);
+  if(q){try{localStorage.setItem('tvFitCols',q[1])}catch(e){}}
+  var v=q?q[1]:null;if(!v){try{v=localStorage.getItem('tvFitCols')}catch(e){}}
+  if(v==='auto')return 0;
+  var n=parseInt(v,10);return n>=1&&n<=20?n:10;
+}
 function setBody(on){document.body.classList.toggle('mpp-fit-auto',on)}
 window.mppFitAuto=function(dash,grid,cards){
   if(mode()!=='auto'){setBody(false);return false}
@@ -5016,6 +5098,13 @@ window.mppFitAuto=function(dash,grid,cards){
     if(total>H)score+=.5*Math.log(total/H);
     else if(total<H*.8)score+=.15*Math.log(H/total);
     if(!best||score<best.score)best={score:score,cols:cols,rows:rows,cw:cw,ch:ch,total:total};
+  }
+  /* Jumlah kolom dipaksa (default 10). Ubah lewat URL: ?cols=8 , atau ?cols=auto untuk pilihan otomatis. */
+  var fc=forcedCols();
+  if(fc){
+    var wait=grid.querySelector(':scope > .mpp-waiting-line')&&cards.indexOf&&[].indexOf.call(cards,grid.querySelector(':scope > .mpp-waiting-line'))<0?1:0;
+    var rows2=Math.ceil((N+wait)/fc),cw2=(W-g*(fc-1))/fc,chAvail2=(H-g*(rows2-1))/rows2,ch2=Math.max(minH,Math.min(chAvail2,cw2/MAX_SKEW));
+    best={score:0,cols:fc,rows:rows2,cw:cw2,ch:ch2,total:rows2*ch2+g*(rows2-1)};
   }
   var s=Math.max(MIN_S,Math.min(MAX_S,Math.min(best.cw/REF_W,best.ch/REF_H)));
   setVar(grid,'--v3525-cols',best.cols);

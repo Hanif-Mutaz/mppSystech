@@ -1,0 +1,2 @@
+Buka terminal di folder itu, jalankan python buat_tv_dummy.py.
+Hasilnya muncul di frontend/tv_dummy.html.
