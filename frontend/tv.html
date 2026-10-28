@@ -231,7 +231,7 @@ function prepareImportedDatabase(x){
  normalizeSkillHeaders(x);
  x.Skill_Matrix=mergeSkillMatrixRows(x.Skill_Matrix||[]);
  for(const e of (x.Master_Karyawan||[])){
-  
+
   if(typeof e.Join_Date==='number'||/^\d{5}$/.test(String(e.Join_Date||''))){const serial=Number(e.Join_Date),d=new Date(Date.UTC(1899,11,30)+serial*86400000);e.Join_Date=d.toISOString().slice(0,10)}
  }
  for(const l of (x.Master_Line||[])){l['Cell Leader']=Number(l['Cell Leader']??1)||0;l['Opt Produksi']=Number(l['Opt Produksi'])||0;l.Inspector=Number(l.Inspector)||0;l.Total=l['Cell Leader']+l['Opt Produksi']+l.Inspector}
@@ -793,7 +793,7 @@ v234RenderLine=function(l,date,shift,index){
  let aa=assigns.map((a,i)=>({a,i})).filter(x=>x.a.date===date&&x.a.shift===shift&&String(x.a.line)===String(l.Line)),roles=v234MasterRoles(l),used=new Set(),slots=[],extra=[];
  for(const x of aa){let key=v234RoleKey(x.a.job),slot=roles.findIndex((r,i)=>!used.has(i)&&v234RoleKey(r)===key);if(slot>=0){used.add(slot);slots[slot]=x}else extra.push(x)}
  let target=roles.length,filled=aa.length,over=Math.max(0,filled-target),c=v234Color(l.Line);
- return '<div class="line v234Line" data-line="'+esc(l.Line)+'" data-date="'+esc(date)+'" data-shift="'+esc(shift)+'" style="--line-main:'+c[0]+';--line-dark:'+c[1]+';--line-soft:'+c[2]+'" ondragover="v234DragOver(event)" ondragleave="v234DragLeave(event)" ondrop="v234Drop(event)"><div class="v234LineHead"><div class="bar"><h3 style="margin:0 auto 0 0">'+esc(l.Line)+'</h3><span class="pill">AKTUAL '+filled+' / MASTER '+target+'</span></div><small>'+esc(date)+' | '+esc(shift)+'</small></div><div class="v234LineBody v234DropZone">'+roles.map((r,i)=>{let x=slots[i];return v235SlotHTML(r,x&&x.a,x&&x.i,false)}).join('')+(extra.length?'<div class="v234Over">MANPOWER TAMBAHAN: '+extra.length+'</div>'+extra.map((x,i)=>v235SlotHTML(x.a.job||('EXTRA '+(i+1)),x.a,x.i,true)).join(''):'')+'</div><div class="v234LineFoot"><span>STANDARD '+target+' MP</span><span>'+(over?'OVER +'+over:(filled<target?'KURANG '+(target-filled):'LINE LENGKAP'))+'</span></div></div>'
+ return '<div class="line v234Line" data-line="'+esc(l.Line)+'" data-date="'+esc(date)+'" data-shift="'+esc(shift)+'" style="--line-main:'+c[0]+';--line-dark:'+c[1]+';--line-soft:'+c[2]+'" ondragover="v234DragOver(event)" ondragleave="v234DragLeave(event)" ondrop="v234Drop(event)"><div class="v234LineHead"><div class="bar"><h3 style="margin:0 auto 0 0">'+esc(l.Line)+'</h3></div></div><div class="v234LineBody v234DropZone">'+roles.map((r,i)=>{let x=slots[i];return v235SlotHTML(r,x&&x.a,x&&x.i,false)}).join('')+(extra.length?'<div class="v234Over">MANPOWER TAMBAHAN: '+extra.length+'</div>'+extra.map((x,i)=>v235SlotHTML(x.a.job||('EXTRA '+(i+1)),x.a,x.i,true)).join(''):'')+'</div><div class="v234LineFoot"><span>STANDARD '+target+' MP</span><span>'+(over?'OVER +'+over:(filled<target?'KURANG '+(target-filled):'LINE LENGKAP'))+'</span></div></div>'
 }
 const v235ApplyThemeBase=v234ApplyTheme;
 v234ApplyTheme=function(name){v235ApplyThemeBase(name);document.documentElement.style.colorScheme=(name==='dark'||name==='neon')?'dark':'light';setTimeout(()=>{document.querySelectorAll('.card,.kpi,.shiftHeader,.allocationSummary div').forEach(x=>{if(!x.closest('.v234Line'))x.style.color=''});renderThreeShiftDashboard()},0)}
@@ -2632,6 +2632,7 @@ function fitPanel(dash){
  let grid=dash.querySelector('.lines');if(!grid)return;
  let cards=[...grid.children].filter(el=>el.classList&&el.classList.contains('v234Line'));
  let total=cards.length;
+ if(typeof window.mppFitAuto==='function'&&window.mppFitAuto(dash,grid,cards))return;
  let cols=Math.max(1,Math.min(densityCols(),Math.max(total,1)));
  let rows=Math.max(1,Math.ceil(total/cols));
  let rect=grid.getBoundingClientRect();
@@ -4926,4 +4927,112 @@ let raf=0,lastWaitSig=null;function waitSig(){return Array.from(document.querySe
 .mpp-v420-wait-count{min-width:21px!important;height:18px!important;padding:0 5px!important;margin-left:4px!important;font-size:10px!important}
 body.tvMode .mpp-waiting-line .mpp-waiting-person,body.v240-tv-only .mpp-waiting-line .mpp-waiting-person{min-height:34px!important;height:34px!important;padding:3px 5px!important;margin:1px 0!important}
 </style>
-<style id="mppV422TVWaitingMatchActiveLine">\n/* V4.22 TV waiting cards: match active-line card size/readability. Display-only patch. */\nbody.tvMode .shiftDash .v240-wait-grid{\n  grid-template-columns:repeat(5,minmax(0,1fr))!important;\n  gap:8px!important;\n}\nbody.tvMode .shiftDash .v240-wait-card{\n  min-width:0!important;\n  min-height:86px!important;\n  height:auto!important;\n  padding:10px 12px!important;\n  border-radius:10px!important;\n  font-size:13px!important;\n  line-height:1.22!important;\n  overflow:hidden!important;\n}\nbody.tvMode .shiftDash .v240-wait-card b{font-size:14px!important;line-height:1.2!important;margin-bottom:4px!important}\nbody.tvMode .shiftDash .v240-wait-card span{font-size:12px!important;line-height:1.2!important}\nbody.tvMode .shiftDash .v240-wait-card small{display:block!important;font-size:10px!important;line-height:1.15!important;margin-top:3px!important}\nbody.tvMode .shiftDash .v2408-wait-order,body.tvMode .shiftDash .v2408-wait-skill{display:block!important}\n</style><style id="mppV424WaitCountStableStyle">.mpp-v420-wait-count{animation:none!important;transition:none!important;transform:none!important;will-change:auto!important}</style><script src="/frontend/server_bridge.js"></script></body></html>
+<style id="mppV422TVWaitingMatchActiveLine">\n/* V4.22 TV waiting cards: match active-line card size/readability. Display-only patch. */\nbody.tvMode .shiftDash .v240-wait-grid{\n  grid-template-columns:repeat(5,minmax(0,1fr))!important;\n  gap:8px!important;\n}\nbody.tvMode .shiftDash .v240-wait-card{\n  min-width:0!important;\n  min-height:86px!important;\n  height:auto!important;\n  padding:10px 12px!important;\n  border-radius:10px!important;\n  font-size:13px!important;\n  line-height:1.22!important;\n  overflow:hidden!important;\n}\nbody.tvMode .shiftDash .v240-wait-card b{font-size:14px!important;line-height:1.2!important;margin-bottom:4px!important}\nbody.tvMode .shiftDash .v240-wait-card span{font-size:12px!important;line-height:1.2!important}\nbody.tvMode .shiftDash .v240-wait-card small{display:block!important;font-size:10px!important;line-height:1.15!important;margin-top:3px!important}\nbody.tvMode .shiftDash .v2408-wait-order,body.tvMode .shiftDash .v2408-wait-skill{display:block!important}\n</style><style id="mppV424WaitCountStableStyle">.mpp-v420-wait-count{animation:none!important;transition:none!important;transform:none!important;will-change:auto!important}</style><style id="mppAutoFitStyle">
+/* Auto-fit layout: kartu line menyesuaikan lebar/tinggi layar (laptop s.d. TV). Nonaktif dengan ?fit=preset */
+body.tvMode.mpp-fit-auto main.wrap:not(#mppFit){max-width:none!important;margin:0!important;padding:2px 6px!important}
+body.tvMode.mpp-fit-auto #dash:not(#mppFit){padding:0!important}
+body.tvMode.mpp-fit-auto #dash > .card:not(#mppFit){padding:4px!important;margin:0!important;border-radius:12px!important}
+body.tvMode.mpp-fit-auto .shiftDash:not(#mppFit){padding:6px 8px!important}
+body.tvMode.mpp-fit-auto .shiftDash:not(.hiddenView):not(#mppFit){height:calc(100vh - var(--mpp-top,67px) - 4px)!important;max-height:calc(100vh - var(--mpp-top,67px) - 4px)!important}
+body.tvMode.mpp-fit-auto .shiftDash.mpp-fit-scroll .shiftDashBody:not(#mppFit){overflow-y:auto!important;overflow-x:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .lines:not(#mppFit){flex:0 0 auto!important;gap:var(--mpp-gap,8px)!important;grid-template-columns:repeat(var(--v3525-cols,10),minmax(0,var(--mpp-cw-max,1fr)))!important;justify-content:center!important;align-content:start!important;overflow:visible!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234Line:not(#mppFit){min-height:0!important;height:auto!important;display:flex!important;flex-direction:column!important;border-radius:calc(11px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineHead:not(#mppFit){padding:calc(5px*var(--mpp-s,1)) calc(7px*var(--mpp-s,1))!important;min-height:0!important;flex:0 0 auto!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineHead .bar:not(#mppFit){margin:0!important;padding:0!important;min-height:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineHead h3:not(#mppFit){font-size:calc(15px*var(--mpp-s,1))!important;line-height:1.1!important;letter-spacing:.4px!important}
+body.tvMode.mpp-fit-auto .shiftDash .v240-line-tools:not(#mppFit){margin:calc(3px*var(--mpp-s,1)) 0 0!important;padding:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .v240-line-tools button:not(#mppFit){font-size:calc(9px*var(--mpp-s,1))!important;line-height:1.1!important;padding:calc(3px*var(--mpp-s,1)) calc(8px*var(--mpp-s,1))!important;min-height:0!important;min-width:0!important;height:auto!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineBody:not(#mppFit){flex:1 1 0!important;min-height:0!important;display:flex!important;flex-direction:column!important;gap:calc(3px*var(--mpp-s,1))!important;padding:calc(5px*var(--mpp-s,1))!important;overflow:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235Slot:not(#mppFit),body.tvMode.mpp-fit-auto .shiftDash .v355-shared-slot:not(#mppFit),body.tvMode.mpp-fit-auto .shiftDash .v357-auto-shared:not(#mppFit){flex:1 1 0!important;min-height:calc(26px*var(--mpp-s,1))!important;max-height:calc(58px*var(--mpp-s,1))!important;margin:0!important;grid-template-columns:calc(32px*var(--mpp-s,1)) minmax(0,1fr)!important;align-items:stretch!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotRole:not(#mppFit){width:calc(32px*var(--mpp-s,1))!important;min-width:calc(32px*var(--mpp-s,1))!important;max-width:calc(32px*var(--mpp-s,1))!important;min-height:0!important;height:auto!important;padding:0!important;font-size:calc(9px*var(--mpp-s,1))!important;line-height:1!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson:not(#mppFit){min-height:0!important;height:auto!important;padding:calc(2px*var(--mpp-s,1)) calc(5px*var(--mpp-s,1))!important;justify-content:center!important;overflow:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234Name:not(#mppFit){font-size:calc(11.5px*var(--mpp-s,1))!important;line-height:1.08!important;white-space:normal!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;word-break:break-word!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234EmpId:not(#mppFit){font-size:calc(8.5px*var(--mpp-s,1))!important;line-height:1.05!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234Over:not(#mppFit){font-size:calc(9px*var(--mpp-s,1))!important;padding:calc(2px*var(--mpp-s,1)) calc(4px*var(--mpp-s,1))!important;margin:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineFoot:not(#mppFit){font-size:calc(8px*var(--mpp-s,1))!important;padding:calc(3px*var(--mpp-s,1)) calc(6px*var(--mpp-s,1))!important;min-height:0!important;flex:0 0 auto!important;white-space:nowrap!important;overflow:hidden!important;gap:calc(4px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineFoot span:not(#mppFit){white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;min-width:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line:not(#mppFit){padding:calc(6px*var(--mpp-s,1))!important;overflow:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line h3:not(#mppFit){font-size:calc(14px*var(--mpp-s,1))!important;margin:0 0 calc(4px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person:not(#mppFit){height:auto!important;min-height:calc(22px*var(--mpp-s,1))!important;padding:calc(2px*var(--mpp-s,1)) calc(5px*var(--mpp-s,1))!important;font-size:calc(10px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto header.head:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .shiftHeader:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .shiftDashBody > div[id$="ShiftTime"]:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .allocationSummary:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .v238Legend:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .shiftDashBody > div[id$="AllocationMsg"]:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+</style>
+<script id="mppAutoFitScript">
+(function(){'use strict';
+/* Auto-fit: pilih jumlah kolom/baris supaya proporsi kartu tetap enak, lalu skalakan isi kartu.
+   Ganti ke preset lama (5/6/10 kolom): tambahkan ?fit=preset pada URL. Kembali: ?fit=auto */
+var KEY='tvFitMode';           /* tanpa awalan "mpp" => tidak disinkronkan antar perangkat */
+var REF_W=170,REF_H=320,TARGET=.59,MIN_S=.85,MAX_S=2.6,MAX_SKEW=.42;
+function mode(){
+  var q=/[?&]fit=(auto|preset)\b/.exec(location.search);
+  if(q){try{localStorage.setItem(KEY,q[1])}catch(e){}return q[1]}
+  try{return localStorage.getItem(KEY)==='preset'?'preset':'auto'}catch(e){return 'auto'}
+}
+function setVar(el,k,v){v=String(v);if(el.style.getPropertyValue(k)!==v)el.style.setProperty(k,v)}
+function setBody(on){document.body.classList.toggle('mpp-fit-auto',on)}
+window.mppFitAuto=function(dash,grid,cards){
+  if(mode()!=='auto'){setBody(false);return false}
+  setBody(true);
+  var N=cards.length;if(!N)return true;
+  var bodyEl=dash.querySelector('.shiftDashBody');
+  var hs=Math.max(1,Math.min(2.2,window.innerWidth/1920));
+  setVar(document.documentElement,'--mpp-hs',hs.toFixed(3));
+  var root=document.getElementById('threeShiftDashboard');
+  if(root)setVar(document.documentElement,'--mpp-top',Math.max(0,Math.round(root.getBoundingClientRect().top))+'px');
+  var cs=getComputedStyle(grid);
+  var padX=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0);
+  var padY=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);
+  var W=Math.max(100,grid.clientWidth-padX);
+  var top=grid.getBoundingClientRect().top+(bodyEl?bodyEl.scrollTop:0);
+  var H=Math.max(160,window.innerHeight-top-padY-8);
+  var g=Math.max(4,Math.min(12,Math.round(window.innerWidth/240)));
+  var minW=REF_W*MIN_S,minH=REF_H*MIN_S;
+  var best=null;
+  for(var cols=1;cols<=N;cols++){
+    var rows=Math.ceil(N/cols);
+    var cw=(W-g*(cols-1))/cols;
+    if(cw<minW&&cols>1)continue;
+    var chAvail=(H-g*(rows-1))/rows;
+    var ch=Math.max(minH,Math.min(chAvail,cw/MAX_SKEW));
+    var total=rows*ch+g*(rows-1);
+    var score=Math.abs(Math.log((cw/ch)/TARGET));
+    if(total>H)score+=.5*Math.log(total/H);
+    else if(total<H*.8)score+=.15*Math.log(H/total);
+    if(!best||score<best.score)best={score:score,cols:cols,rows:rows,cw:cw,ch:ch,total:total};
+  }
+  var s=Math.max(MIN_S,Math.min(MAX_S,Math.min(best.cw/REF_W,best.ch/REF_H)));
+  setVar(grid,'--v3525-cols',best.cols);
+  setVar(grid,'--v3525-rows',best.rows);
+  setVar(grid,'--v3525-grid-height',Math.ceil(best.total+padY)+'px');
+  setVar(grid,'--mpp-s',s.toFixed(3));
+  setVar(grid,'--mpp-gap',g+'px');
+  setVar(grid,'--mpp-cw-max',Math.round(REF_W*MAX_S*1.15)+'px');
+  dash.classList.toggle('mpp-fit-scroll',best.total>H+1);
+  dash.classList.remove('v3525-very-dense');
+  return true;
+};
+/* Pemicu mandiri: tidak bergantung pada penjadwal lama (yang bisa tertunda bila DOM terus berubah). */
+var lastSig='',timer=0;
+function sig(){
+  var g=document.querySelector('.shiftDash:not(.hiddenView) .lines');
+  var n=g?g.querySelectorAll(':scope > .v234Line').length:0;
+  return window.innerWidth+'x'+window.innerHeight+'/'+n;
+}
+function run(){
+  if(mode()!=='auto'||!document.body.classList.contains('tvMode'))return;
+  lastSig=sig();
+  if(typeof window.mppV3525FitAllThreeShifts==='function')window.mppV3525FitAllThreeShifts();
+}
+function kick(){clearTimeout(timer);timer=setTimeout(run,80)}
+window.addEventListener('resize',kick);
+window.addEventListener('orientationchange',kick);
+document.addEventListener('fullscreenchange',kick);
+setInterval(function(){if(mode()==='auto'&&document.body&&sig()!==lastSig)run()},800);
+document.addEventListener('DOMContentLoaded',function(){setBody(mode()==='auto');setTimeout(run,0)},{once:true});
+})();
+</script>
+<script src="/frontend/server_bridge.js"></script></body></html>
