@@ -1307,7 +1307,7 @@ function v2408SkillSummary(empId){let skills=v2405AllSkills(empId);return skills
 v240RenderWaiting=function(prefix,ctx){let cards=$(prefix+'LineCards');if(!cards||!ctx)return;let id='v240Wait-'+prefix,old=$(id);if(old)old.remove();let rows=v2408WaitingSorted(ctx.workDate,ctx.name),box=document.createElement('div');box.id=id;box.className='v240-wait';box.innerHTML='<h3>TUNGGU LINE | '+esc(ctx.name)+' | '+esc(ctx.workDate)+' | '+rows.length+' orang</h3><div class="v2408-priority-note">Urutan boleh masuk: Cell Leader terlebih dahulu, lalu Inspector, kemudian Operator. Dalam posisi yang sama, yang scan lebih awal mendapat urutan lebih dahulu.</div><div class="v240-wait-grid">'+(rows.map((a,i)=>'<div class="v240-wait-card '+(a.waitReason.startsWith('TIDAK')?'v240-no-line':'v240-full')+'" draggable="'+v234CanMove()+'" data-emp="'+esc(a.emp)+'" data-date="'+esc(a.date)+'" data-shift="'+esc(a.shift)+'" ondragstart="v240WaitDrag(event)" onclick="v240ShowEmployee(\''+esc(a.emp)+'\')"><b>#'+(i+1)+' | '+esc(a.emp)+'</b><span class="v240-clickable">'+esc(a.name)+'</span><small>'+esc(a.waitReason)+'</small><span class="v2408-wait-order">'+v2408PriorityLabel(a)+'</span><span class="v2408-wait-skill">'+v2408SkillSummary(a.emp)+'</span></div>').join('')||'<div>Tidak ada karyawan menunggu.</div>')+'</div>';cards.parentNode.insertBefore(box,cards.nextSibling)}
 function v2408PreferredRole(a){let job=v238Proc(v238DisplayJob(a.job||'')),emp=(db.Master_Karyawan||[]).find(e=>v240t(e.EmpID)===v240t(a.emp)),pos=v238Proc(emp&&emp.Position||'');if(job==='CELL LEADER'||pos==='CELL LEADER')return 'CELL LEADER';if(job==='INSPECTOR'||pos==='INSPECTOR')return 'INSPECTOR';return ''}
 function v2408ExtraJob(process,line,date,shift,skip){return 'EXTRA - '+process+' #'+v238ExtraNumber(line,date,shift,process,skip)}
-v240MoveWholeLine=function(line,date,shift){if(!v234CanMove())return alert('Akses ditolak.');let targets=(db.Master_Line||[]).filter(l=>v240t(l.Line)!==v240t(line)&&activeLines(date,shift).includes(v240t(l.Line)));let target=prompt('Pindahkan seluruh manpower '+line+' ke line tujuan:\n'+targets.map(x=>x.Line).join(', '));if(!target)return;let lm=targets.find(x=>v240t(x.Line)===v240t(target));if(!lm)return alert('Line tujuan tidak valid atau tidak aktif.');let list=assigns.filter(a=>a.date===date&&a.shift===shift&&v240t(a.line)===v240t(line)).sort((a,b)=>v2408RolePriority(a)-v2408RolePriority(b));if(!list.length)return alert('Tidak ada manpower pada line asal.');if(!confirm('Pindahkan '+list.length+' karyawan dari '+line+' ke '+target+'?\n\nCell Leader akan mengisi slot CELL LEADER. Inspector akan mengisi slot INSPECTOR. Operator ditempatkan sesuai skill dan slot kosong.'))return;let overlay=document.createElement('div');overlay.className='v2408-moving';overlay.textContent='Memindahkan manpower...';document.body.appendChild(overlay);requestAnimationFrame(()=>{try{let roles=v234MasterRoles(lm).map(v238Proc),used=new Set(assigns.filter(a=>!list.includes(a)&&a.date===date&&a.shift===shift&&v240t(a.line)===v240t(target)&&!v238IsExtra(a.job)).map(a=>v238Proc(v238DisplayJob(a.job))));for(const a of list){let preferred=v2408PreferredRole(a),skills=v239SkillsFor(a.emp,target),job='',extra=false;if(preferred&&roles.includes(preferred)&&!used.has(preferred)){job=preferred;used.add(preferred)}else if(preferred){job=v2408ExtraJob(preferred,target,date,shift,a);extra=true}else{job=skills.find(p=>roles.includes(v238Proc(p))&&!used.has(v238Proc(p)));if(job)used.add(v238Proc(job));else{let p=skills.find(p=>roles.includes(v238Proc(p)))||skills[0]||v238Proc(v238DisplayJob(a.job))||'OPERATOR';job=v2408ExtraJob(p,target,date,shift,a);extra=true}}let oldJob=a.job;a.line=v240t(target);a.job=job;a.isExtra=extra;a.assignmentSource='FULL_LINE_MOVE_PRIORITY_ROLE';a.movedAt=new Date().toISOString();a.movedBy=currentUser.username;let att=attendance.find(x=>x.emp===a.emp&&x.date===date&&x.shift===shift&&!x.out);if(att){att.line=v240t(target);att.job=job;att.status=extra?'CHECK IN - FULL LINE EXTRA':'CHECK IN - FULL LINE MOVE'}audit('PINDAH 1 LINE '+a.emp+' '+line+' / '+oldJob+' -> '+target+' / '+job)}localStorage.setItem('mpp23assign',JSON.stringify(assigns));localStorage.setItem('mpp25attendance',JSON.stringify(attendance));renderThreeShiftDashboard()}finally{overlay.remove()}})}
+v240MoveWholeLine=function(line,date,shift){if(!v234CanMove())return alert('Akses ditolak.');let targets=(db.Master_Line||[]).filter(l=>v240t(l.Line)!==v240t(line)&&activeLines(date,shift).includes(v240t(l.Line)));let target=prompt('Pindahkan seluruh manpower '+line+' ke line tujuan:\n'+targets.map(x=>x.Line).join(', '));if(!target)return;let lm=targets.find(x=>v240t(x.Line)===v240t(target));if(!lm)return alert('Line tujuan tidak valid atau tidak aktif.');let list=assigns.filter(a=>a.date===date&&a.shift===shift&&v240t(a.line)===v240t(line)).sort((a,b)=>v2408RolePriority(a)-v2408RolePriority(b));if(!list.length)return alert('Tidak ada manpower pada line asal.');if(!confirm('Pindahkan '+list.length+' karyawan dari '+line+' ke '+target+'?\n\nCell Leader akan mengisi slot CELL LEADER. Inspector akan mengisi slot INSPECTOR. Operator ditempatkan sesuai skill dan slot kosong.'))return;let overlay=document.createElement('div');overlay.className='v2408-moving';overlay.textContent='Memindahkan manpower...';document.body.appendChild(overlay);requestAnimationFrame(()=>{try{let roles=v234MasterRoles(lm).map(v238Proc),used=new Set(assigns.filter(a=>!list.includes(a)&&a.date===date&&a.shift===shift&&v240t(a.line)===v240t(target)&&!v238IsExtra(a.job)).map(a=>v238Proc(v238DisplayJob(a.job))));for(const a of list){let preferred=v2408PreferredRole(a),skills=v239SkillsFor(a.emp,target),job='',extra=false;if(preferred&&roles.includes(preferred)&&!used.has(preferred)){job=preferred;used.add(preferred)}else if(preferred){job=v2408ExtraJob(preferred,target,date,shift,a);extra=true}else{job=skills.find(p=>roles.includes(v238Proc(p))&&!used.has(v238Proc(p)));if(job)used.add(v238Proc(job));else{let p=skills.find(p=>roles.includes(v238Proc(p)))||skills[0]||v238Proc(v238DisplayJob(a.job))||'OPERATOR';job=v2408ExtraJob(p,target,date,shift,a);extra=true}}let oldJob=a.job;a.line=v240t(target);a.job=job;a.isExtra=extra;a.assignmentSource='FULL_LINE_MOVE_PRIORITY_ROLE';a.movedAt=new Date().toISOString();a.movedBy=currentUser.username;let att=attendance.find(x=>x.emp===a.emp&&x.date===date&&x.shift===shift&&!x.out);if(att){att.line=v240t(target);att.job=job;att.status=extra?'CHECK IN - FULL LINE EXTRA':'CHECK IN - FULL LINE MOVE'}audit('PINDAH 1 LINE '+a.emp+' '+line+' / '+oldJob+' -> '+target+' / '+job)}if(typeof mppSharedFollowLineMove==='function'){try{mppSharedFollowLineMove(line,v240t(target),list.map(a=>a.emp))}catch(e){console.warn('Shared CL ikut pindah gagal',e)}}localStorage.setItem('mpp23assign',JSON.stringify(assigns));localStorage.setItem('mpp25attendance',JSON.stringify(attendance));renderThreeShiftDashboard()}finally{overlay.remove()}})}
 /* Coalesce repeated dashboard renders into one animation frame for smoother opening. */
 const v2408RenderThreeBase=renderThreeShiftDashboard;let v2408Frame=0;renderThreeShiftDashboard=function(){if(v2408Frame)return;v2408Frame=requestAnimationFrame(()=>{v2408Frame=0;v2408RenderThreeBase()})};
 const v2408RenderBase=render;render=function(){v2408RenderBase();let h=document.querySelector('.head h1');if(h)h.textContent='MAN POWER PLANNER V2.40.8 PRIORITY & SMOOTH MOVE';let lh=document.querySelector('.loginBox h2');if(lh)lh.textContent='Man Power Planner V2.40.8'};
@@ -2100,16 +2100,17 @@ window.APP_VERSION='3.5.5-shared-cell-leader';
 const KEY='mppV355SharedLeaders';
 let sharedLeaders=[];try{sharedLeaders=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(sharedLeaders))sharedLeaders=[]}catch(e){sharedLeaders=[]}
 const txt=v=>String(v==null?'':v).trim();
-function save(){localStorage.setItem(KEY,JSON.stringify(sharedLeaders));if(typeof audit==='function')audit('SIMPAN SHARED CELL LEADER: '+sharedLeaders.length+' konfigurasi');renderSharedPanel();if(typeof renderThreeShiftDashboard==='function')renderThreeShiftDashboard()}
+function reloadShared(){try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');sharedLeaders=Array.isArray(a)?a:[]}catch(e){}}window.v355ReloadShared=reloadShared;
+function save(){localStorage.setItem(KEY,JSON.stringify(sharedLeaders));window.v355SharedLeaders=sharedLeaders;if(typeof audit==='function')audit('SIMPAN SHARED CELL LEADER: '+sharedLeaders.length+' konfigurasi');renderSharedPanel();if(typeof renderThreeShiftDashboard==='function')renderThreeShiftDashboard()}
 function employee(id){return (db.Master_Karyawan||[]).find(e=>txt(e.EmpID)===txt(id))}
-function activeShared(empId,line,date,shift){let cfg=sharedLeaders.find(x=>txt(x.emp)===txt(empId)&&[...(Array.isArray(x.lines)?x.lines:[]),x.primary,x.mainLine].map(txt).includes(txt(line)));if(!cfg)return false;return assigns.some(a=>txt(a.emp)===txt(empId)&&a.date===date&&a.shift===shift&&v238Proc(v238DisplayJob(a.job))==='CELL LEADER')}
-function leaderForLine(line,date,shift){for(const cfg of sharedLeaders){if(![...(Array.isArray(cfg.lines)?cfg.lines:[]),cfg.primary,cfg.mainLine].map(txt).includes(txt(line)))continue;let a=assigns.find(x=>txt(x.emp)===txt(cfg.emp)&&x.date===date&&x.shift===shift&&v238Proc(v238DisplayJob(x.job))==='CELL LEADER');if(a)return {cfg,a,emp:employee(cfg.emp)}}return null}
+function activeShared(empId,line,date,shift){reloadShared();let cfg=sharedLeaders.find(x=>txt(x.emp)===txt(empId)&&[...(Array.isArray(x.lines)?x.lines:[]),x.primary,x.mainLine].map(txt).includes(txt(line)));if(!cfg)return false;return assigns.some(a=>txt(a.emp)===txt(empId)&&a.date===date&&a.shift===shift&&v238Proc(v238DisplayJob(a.job))==='CELL LEADER')}
+function leaderForLine(line,date,shift){reloadShared();for(const cfg of sharedLeaders){if(![...(Array.isArray(cfg.lines)?cfg.lines:[]),cfg.primary,cfg.mainLine].map(txt).includes(txt(line)))continue;let a=assigns.find(x=>txt(x.emp)===txt(cfg.emp)&&x.date===date&&x.shift===shift&&v238Proc(v238DisplayJob(x.job))==='CELL LEADER');if(a)return {cfg,a,emp:employee(cfg.emp)}}return null}
 function lineOptions(value){return '<option value="">- Pilih Line -</option>'+(db.Master_Line||[]).map(l=>'<option value="'+esc(l.Line)+'" '+(txt(l.Line)===txt(value)?'selected':'')+'>'+esc(l.Line)+'</option>').join('')}
 function employeeOptions(value){return '<option value="">- Pilih Cell Leader -</option>'+(db.Master_Karyawan||[]).filter(e=>txt(e.Position).toUpperCase()==='CELL LEADER').map(e=>'<option value="'+esc(e.EmpID)+'" '+(txt(e.EmpID)===txt(value)?'selected':'')+'>'+esc(e.EmpID)+' - '+esc(e.Nama)+'</option>').join('')}
 function setupPanel(){let card=document.getElementById('adminSettingsCard');if(!card)return;let p=document.getElementById('v355SharedPanel');if(!p){p=document.createElement('div');p.id='v355SharedPanel';p.className='v355-shared-panel';card.appendChild(p)}p.innerHTML='<h3>Shared Cell Leader 2-3 Line</h3><div class="note">Cell Leader scan masuk satu kali dan assignment tetap satu record. Nama ditampilkan pada seluruh line cakupan, tetapi Actual MP, kehadiran, dan KPI tetap dihitung satu orang.</div><div class="v355-shared-grid"><label>Cell Leader<select id="v355Emp">'+employeeOptions('')+'</select></label><label>Primary Line<select id="v355L1">'+lineOptions('')+'</select></label><label>Shared Line 2<select id="v355L2">'+lineOptions('')+'</select></label><label>Shared Line 3<select id="v355L3">'+lineOptions('')+'</select></label><button class="green" onclick="v355SaveSharedLeader()">Simpan Share Line</button></div><div id="v355SharedList" class="v355-shared-list"></div>';renderSharedPanel()}
-window.v355SaveSharedLeader=function(){let emp=txt(document.getElementById('v355Emp').value),lines=[1,2,3].map(i=>txt(document.getElementById('v355L'+i).value)).filter(Boolean);lines=[...new Set(lines)];if(!emp)return alert('Pilih Cell Leader.');if(lines.length<2)return alert('Pilih minimal 2 line.');if(lines.length>3)return alert('Maksimal 3 line.');let e=employee(emp);if(!e)return alert('Cell Leader tidak ditemukan.');let skillLines=typeof v2405AllSkills==='function'?v2405AllSkills(emp).map(x=>txt(x.line)):[];let invalid=lines.filter(l=>skillLines.length&&!skillLines.includes(l));if(invalid.length&&!confirm('Cell Leader belum memiliki Skill Matrix pada '+invalid.join(', ')+'. Tetap simpan sebagai override shared leader?'))return;sharedLeaders=sharedLeaders.filter(x=>txt(x.emp)!==emp);sharedLeaders.push({emp,name:e.Nama,lines,primary:lines[0],updatedAt:new Date().toISOString()});save()};
-window.v355DeleteSharedLeader=function(emp){if(!confirm('Hapus konfigurasi shared leader '+emp+'?'))return;sharedLeaders=sharedLeaders.filter(x=>txt(x.emp)!==txt(emp));save()};
-function renderSharedPanel(){let list=document.getElementById('v355SharedList');if(!list)return;list.innerHTML=sharedLeaders.map(x=>'<div class="v355-shared-row"><b>'+esc(x.emp)+' - '+esc(x.name||employee(x.emp)?.Nama||'')+'</b><span>PRIMARY: '+esc(x.primary)+' | SHARE: '+x.lines.map(esc).join(' • ')+'</span><button class="red" onclick="v355DeleteSharedLeader(\''+esc(x.emp)+'\')">Hapus</button></div>').join('')||'<div class="note">Belum ada konfigurasi Shared Cell Leader.</div>'}
+window.v355SaveSharedLeader=function(){let emp=txt(document.getElementById('v355Emp').value),lines=[1,2,3].map(i=>txt(document.getElementById('v355L'+i).value)).filter(Boolean);lines=[...new Set(lines)];if(!emp)return alert('Pilih Cell Leader.');if(lines.length<2)return alert('Pilih minimal 2 line.');if(lines.length>3)return alert('Maksimal 3 line.');let e=employee(emp);if(!e)return alert('Cell Leader tidak ditemukan.');let skillLines=typeof v2405AllSkills==='function'?v2405AllSkills(emp).map(x=>txt(x.line)):[];let invalid=lines.filter(l=>skillLines.length&&!skillLines.includes(l));if(invalid.length&&!confirm('Cell Leader belum memiliki Skill Matrix pada '+invalid.join(', ')+'. Tetap simpan sebagai override shared leader?'))return;reloadShared();sharedLeaders=sharedLeaders.filter(x=>txt(x.emp)!==emp);sharedLeaders.push({emp,name:e.Nama,lines,primary:lines[0],updatedAt:new Date().toISOString()});save()};
+window.v355DeleteSharedLeader=function(emp){if(!confirm('Hapus konfigurasi shared leader '+emp+'?'))return;reloadShared();sharedLeaders=sharedLeaders.filter(x=>txt(x.emp)!==txt(emp));save()};
+function renderSharedPanel(){let list=document.getElementById('v355SharedList');if(!list)return;reloadShared();list.innerHTML=sharedLeaders.map(x=>'<div class="v355-shared-row"><b>'+esc(x.emp)+' - '+esc(x.name||employee(x.emp)?.Nama||'')+'</b><span>PRIMARY: '+esc(x.primary)+' | SHARE: '+x.lines.map(esc).join(' • ')+'</span><button class="red" onclick="v355DeleteSharedLeader(\''+esc(x.emp)+'\')">Hapus</button></div>').join('')||'<div class="note">Belum ada konfigurasi Shared Cell Leader.</div>'}
 function applySharedVisual(){document.querySelectorAll('.v234Line').forEach(card=>{let line=txt(card.dataset.line),date=card.dataset.date,shift=card.dataset.shift,found=leaderForLine(line,date,shift);if(!found)return;let slots=[...card.querySelectorAll('.v235Slot')],slot=slots.find(s=>v238Proc(v238DisplayJob(s.dataset.process||s.querySelector('.v235SlotRole')?.textContent||''))==='CELL LEADER');if(!slot)return;let current=slot.querySelector('.v234EmpId')?.textContent;if(txt(current)===txt(found.a.emp)){slot.insertAdjacentHTML('beforeend','<span class="v355-shared-line-note">PRIMARY / SHARED '+found.cfg.lines.length+' LINE</span>');return}if(current)return;slot.classList.remove('v235SlotEmpty','v238SkillBad');slot.classList.add('v355-shared-slot','v238SkillOk');slot.setAttribute('draggable','false');slot.innerHTML='<span class="v235SlotRole">CL</span><span class="v235SlotPerson"><span class="v234EmpId">'+esc(found.a.emp)+'</span><span class="v234Name">'+esc(found.a.name||found.emp?.Nama||'')+'</span><span class="v355-shared-badge">SHARED LEADER • '+found.cfg.lines.length+' LINE</span><span class="v355-shared-line-note">Scan & Actual MP dihitung 1 kali</span></span>'})}
 /* conflict checker: shared target line is not reported as missing CL */
 if(typeof window.v2410Check==='function'){const base=window.v2410Check;window.v2410Check=function(date,shift){let rows=base.apply(this,arguments);for(let i=v2410Conflicts.length-1;i>=0;i--){let c=v2410Conflicts[i];if(c.code==='NO_CELL_LEADER'&&leaderForLine(c.line,c.date,c.shift))v2410Conflicts.splice(i,1)}return v2410Conflicts}}
@@ -2603,6 +2604,7 @@ function fitPanel(dash){
  let grid=dash.querySelector('.lines');if(!grid)return;
  let cards=[...grid.children].filter(el=>el.classList&&el.classList.contains('v234Line'));
  let total=cards.length;
+ if(typeof window.mppFitAuto==='function'&&window.mppFitAuto(dash,grid,cards))return;
  let cols=Math.max(1,Math.min(densityCols(),Math.max(total,1)));
  let rows=Math.max(1,Math.ceil(total/cols));
  let rect=grid.getBoundingClientRect();
@@ -3945,8 +3947,8 @@ function bindLogin(){users();let b=document.getElementById('btnLogin'),p=documen
 function assignment(line,date,shift){let a=(typeof assigns!=='undefined'&&Array.isArray(assigns))?assigns:[];return a.find(x=>T(x.line)===T(line)&&T(x.date)===T(date)&&T(x.shift)===T(shift)&&N(typeof v238DisplayJob==='function'?v238DisplayJob(x.job):x.job).includes('CELL LEADER'))}
 function shared(emp,line,date,shift){let a=[];try{a=JSON.parse(localStorage.getItem('mppV355SharedLeaders')||'[]')}catch(e){}return Array.isArray(a)&&a.some(x=>T(x.emp)===T(emp)&&(!x.date||T(x.date)===T(date))&&(!x.shift||T(x.shift)===T(shift))&&[...(Array.isArray(x.lines)?x.lines:[]),x.primary,x.mainLine].map(T).includes(T(line)))}
 function cleanCL(){document.querySelectorAll('.v234Line').forEach(c=>{let line=T(c.dataset.line),date=T(c.dataset.date),shift=T(c.dataset.shift),a=assignment(line,date,shift);c.querySelectorAll('.v235Slot').forEach(s=>{let r=N(s.dataset.process||s.querySelector('.v235SlotRole')?.textContent);if(!r.includes('CELL LEADER')&&r!=='CL')return;let emp=T(s.querySelector('.v234EmpId')?.textContent);if(!emp||(a&&T(a.emp)===emp)||shared(emp,line,date,shift))return;if(s.querySelector('.v355-shared-badge,.v357-auto-badge,.v358-shared-badge')||s.classList.contains('v355-shared-slot')){s.classList.remove('v355-shared-slot','v238SkillOk');s.removeAttribute('data-emp');s.innerHTML='<span class="v235SlotRole">CL</span><span class="v235SlotPerson"></span>'}})})}let raf=0;function scheduleClean(){cancelAnimationFrame(raf);raf=requestAnimationFrame(cleanCL)}
-function density(){let v=localStorage.getItem('mpp356Density')||localStorage.getItem('mppV356Density')||'10';v=String(v)==='8'?'8':'10';document.body.classList.remove('tv-density-8','tv-density-10','tv-density-20','tv-density-25','tv-density-30');document.body.classList.add('tv-density-'+v);let s=document.getElementById('v356Density');if(s&&s.value!==v)s.value=v}
-document.addEventListener('change',e=>{if(e.target&&e.target.id==='v356Density'){let v=String(e.target.value)==='8'?'8':'10';localStorage.setItem('mpp356Density',v);localStorage.setItem('mppV356Density',v);density();requestAnimationFrame(()=>{try{if(typeof renderThreeShiftDashboard==='function')renderThreeShiftDashboard()}catch(x){}})}},true);document.addEventListener('fullscreenchange',()=>{density();scheduleClean()});
+function density(){let v=localStorage.getItem('mpp356Density')||localStorage.getItem('mppV356Density')||'20';v=['8','10','20','25','30'].includes(String(v))?String(v):'20';document.body.classList.remove('tv-density-8','tv-density-10','tv-density-20','tv-density-25','tv-density-30');document.body.classList.add('tv-density-'+v);let s=document.getElementById('v356Density');if(s&&s.value!==v)s.value=v}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='v356Density'){let v=['8','10','20','25','30'].includes(String(e.target.value))?String(e.target.value):'20';localStorage.setItem('mpp356Density',v);localStorage.setItem('mppV356Density',v);density();requestAnimationFrame(()=>{try{if(typeof renderThreeShiftDashboard==='function')renderThreeShiftDashboard()}catch(x){}})}},true);document.addEventListener('fullscreenchange',()=>{density();scheduleClean()});
 let tip;function ensureTip(){if(!tip){tip=document.createElement('div');tip.id='mppOpsTooltip';document.body.appendChild(tip)}return tip}function tipText(el){let r=T(el.querySelector?.('.v235SlotRole')?.textContent||el.dataset?.process||el.dataset?.role);if(!/^(OPT|DN|INS)(\d+)?$/i.test(r))return '';let id=T(el.querySelector?.('.v234EmpId')?.textContent),n=T(el.querySelector?.('.v234Name')?.textContent),x=T(el.getAttribute?.('data-tooltip')||el.getAttribute?.('title'));return[r,id,n,x].filter(Boolean).join('\n')}function move(e){if(!tip||!tip.classList.contains('open'))return;let x=Math.min(innerWidth-tip.offsetWidth-8,(e.clientX||0)+14),y=Math.min(innerHeight-tip.offsetHeight-8,(e.clientY||0)+14);tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}function close(){if(tip)tip.classList.remove('open')}/* V405: retired mppOpsTooltip black tooltip handlers; white skill tooltip is authoritative. */
 function post(){density();scheduleClean()}['renderThreeShiftDashboard','render'].forEach(n=>{let f=window[n];if(typeof f==='function'&&!f.__opsFixed){let w=function(){let r=f.apply(this,arguments);post();return r};w.__opsFixed=true;window[n]=w}});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bindLogin();post()},{once:true});else{bindLogin();post()}setTimeout(()=>{bindLogin();post()},0)})();
 </script>
@@ -4042,6 +4044,40 @@ const rd=window.renderThreeShiftDashboard;if(typeof rd==='function')window.rende
 window.mppMoveSharedLeader=function(emp,from,to){const a=configs(),c=a.find(x=>T(x.emp)===T(emp)&&Array.isArray(x.lines)&&x.lines.map(T).includes(T(from)));if(!c||!T(to))return false;c.lines=c.lines.map(T).filter(x=>x&&x!==T(from)&&x!==T(to));if(T(to)!==T(c.mainLine))c.lines.push(T(to));c.lines=[...new Set(c.lines)];persist(a,T(from),T(to));refresh();return true};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>mark(),0),{once:true});else setTimeout(()=>mark(),0);
 })();</script>
+<script id="mppV431SharedFollowLineMove">
+(function(){'use strict';
+if(window.__MPP_V431_SHARED_FOLLOW__)return;window.__MPP_V431_SHARED_FOLLOW__=1;
+const KEY='mppV355SharedLeaders',T=v=>String(v==null?'':v).trim(),EQ=(a,b)=>T(a).toUpperCase()===T(b).toUpperCase();
+function read(){try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+/* Dipanggil setelah "Pindahkan 1 Line" (from -> to). Config Shared Cell Leader yang memuat line asal ikut dipindah:
+   - from ada di daftar share (lines)              -> diganti to
+   - from adalah primary                            -> primary = to
+   - from adalah mainLine DAN CL-nya ikut dipindah  -> mainLine = to (CL kini berada di line tujuan) */
+window.mppSharedFollowLineMove=function(from,to,movedEmps){
+  from=T(from);to=T(to);if(!from||!to||EQ(from,to))return false;
+  const moved=new Set((Array.isArray(movedEmps)?movedEmps:[]).map(T));
+  const cfgs=read();let changed=false;
+  cfgs.forEach(c=>{
+    let lines=(Array.isArray(c.lines)?c.lines:[]).map(T).filter(Boolean);
+    const inLines=lines.some(l=>EQ(l,from)),isPrimary=EQ(c.primary,from),isMain=EQ(c.mainLine,from)&&moved.has(T(c.emp));
+    if(!inLines&&!isPrimary&&!isMain)return;
+    lines=lines.map(l=>EQ(l,from)?to:l);
+    if(isPrimary)c.primary=to;
+    if(isMain)c.mainLine=to;
+    const main=T(c.mainLine);
+    c.lines=[...new Set(lines)].filter(l=>!main||!EQ(l,main));
+    c.updatedAt=new Date().toISOString();changed=true;
+  });
+  if(!changed)return false;
+  localStorage.setItem(KEY,JSON.stringify(cfgs));
+  window.v355SharedLeaders=cfgs;
+  try{if(typeof window.v355ReloadShared==='function')window.v355ReloadShared()}catch(e){}
+  try{if(typeof mppSavePersistentData==='function')mppSavePersistentData()}catch(e){}
+  try{if(typeof audit==='function')audit('SHARED CL IKUT PINDAH 1 LINE: '+from+' -> '+to)}catch(e){}
+  return true;
+};
+})();
+</script>
 <!-- V2.40.18: strict shift scan window + compact TV exit button -->
 <style id="v24018StrictShiftCompactTVStyle">
 /* Tombol keluar TV dibuat kecil agar tidak menutup KPI/kartu dashboard. */
@@ -4927,7 +4963,241 @@ let raf=0,lastWaitSig=null;function waitSig(){return Array.from(document.querySe
 .mpp-v420-wait-count{min-width:21px!important;height:18px!important;padding:0 5px!important;margin-left:4px!important;font-size:10px!important}
 body.tvMode .mpp-waiting-line .mpp-waiting-person,body.v240-tv-only .mpp-waiting-line .mpp-waiting-person{min-height:34px!important;height:34px!important;padding:3px 5px!important;margin:1px 0!important}
 </style>
-<style id="mppV422IndexWaitingMatchActiveLine">\n/* V422 index: waiting cards restored to active-line-like readable size */\n.mpp-waiting-line{gap:6px!important;padding:8px!important}\n.mpp-waiting-line .mpp-waiting-person{grid-template-columns:minmax(76px,105px) minmax(0,1fr)!important;gap:8px!important;min-height:44px!important;height:auto!important;padding:6px!important;margin:3px 0!important;border-radius:8px!important;font-size:12px!important;line-height:1.2!important}\n.mpp-waiting-line .mpp-waiting-person .v235SlotRole{font-size:12px!important;line-height:1.2!important}\n.mpp-waiting-line .mpp-waiting-person .v234EmpId{font-size:10px!important;line-height:1.2!important}\n.mpp-waiting-line .mpp-waiting-person .v234Name{font-size:12px!important;line-height:1.2!important}\nbody.tvMode .shiftDash .v240-wait-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:8px!important}\nbody.tvMode .shiftDash .v240-wait-card{min-width:0!important;min-height:86px!important;height:auto!important;padding:10px 12px!important;border-radius:10px!important;font-size:13px!important;line-height:1.22!important;overflow:hidden!important}\nbody.tvMode .shiftDash .v240-wait-card b{font-size:14px!important;line-height:1.2!important;margin-bottom:4px!important}\nbody.tvMode .shiftDash .v240-wait-card span{font-size:12px!important;line-height:1.2!important}\nbody.tvMode .shiftDash .v240-wait-card small{display:block!important;font-size:10px!important;line-height:1.15!important;margin-top:3px!important}\n</style><style id="mppV424WaitCountStableStyle">.mpp-v420-wait-count{animation:none!important;transition:none!important;transform:none!important;will-change:auto!important}</style><script src="/frontend/server_bridge.js"></script><script src="/frontend/device_bridge.js"></script><style id="mppWaitUnifiedCss">
+<style id="mppV422IndexWaitingMatchActiveLine">\n/* V422 index: waiting cards restored to active-line-like readable size */\n.mpp-waiting-line{gap:6px!important;padding:8px!important}\n.mpp-waiting-line .mpp-waiting-person{grid-template-columns:minmax(76px,105px) minmax(0,1fr)!important;gap:8px!important;min-height:44px!important;height:auto!important;padding:6px!important;margin:3px 0!important;border-radius:8px!important;font-size:12px!important;line-height:1.2!important}\n.mpp-waiting-line .mpp-waiting-person .v235SlotRole{font-size:12px!important;line-height:1.2!important}\n.mpp-waiting-line .mpp-waiting-person .v234EmpId{font-size:10px!important;line-height:1.2!important}\n.mpp-waiting-line .mpp-waiting-person .v234Name{font-size:12px!important;line-height:1.2!important}\nbody.tvMode .shiftDash .v240-wait-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:8px!important}\nbody.tvMode .shiftDash .v240-wait-card{min-width:0!important;min-height:86px!important;height:auto!important;padding:10px 12px!important;border-radius:10px!important;font-size:13px!important;line-height:1.22!important;overflow:hidden!important}\nbody.tvMode .shiftDash .v240-wait-card b{font-size:14px!important;line-height:1.2!important;margin-bottom:4px!important}\nbody.tvMode .shiftDash .v240-wait-card span{font-size:12px!important;line-height:1.2!important}\nbody.tvMode .shiftDash .v240-wait-card small{display:block!important;font-size:10px!important;line-height:1.15!important;margin-top:3px!important}\n</style><style id="mppV424WaitCountStableStyle">.mpp-v420-wait-count{animation:none!important;transition:none!important;transform:none!important;will-change:auto!important}</style><style id="mppV422TVWaitingMatchActiveLine">\n/* V4.22 TV waiting cards: match active-line card size/readability. Display-only patch. */\nbody.tvMode .shiftDash .v240-wait-grid{\n  grid-template-columns:repeat(5,minmax(0,1fr))!important;\n  gap:8px!important;\n}\nbody.tvMode .shiftDash .v240-wait-card{\n  min-width:0!important;\n  min-height:86px!important;\n  height:auto!important;\n  padding:10px 12px!important;\n  border-radius:10px!important;\n  font-size:13px!important;\n  line-height:1.22!important;\n  overflow:hidden!important;\n}\nbody.tvMode .shiftDash .v240-wait-card b{font-size:14px!important;line-height:1.2!important;margin-bottom:4px!important}\nbody.tvMode .shiftDash .v240-wait-card span{font-size:12px!important;line-height:1.2!important}\nbody.tvMode .shiftDash .v240-wait-card small{display:block!important;font-size:10px!important;line-height:1.15!important;margin-top:3px!important}\nbody.tvMode .shiftDash .v2408-wait-order,body.tvMode .shiftDash .v2408-wait-skill{display:block!important}\n</style><style id="mppAutoFitStyle">
+/* Auto-fit layout: kartu line menyesuaikan lebar/tinggi layar (laptop s.d. TV). Nonaktif dengan ?fit=preset */
+body.tvMode.mpp-fit-auto main.wrap:not(#mppFit){max-width:none!important;margin:0!important;padding:2px 6px!important}
+body.tvMode.mpp-fit-auto #dash:not(#mppFit){padding:0!important}
+body.tvMode.mpp-fit-auto #dash > .card:not(#mppFit){padding:4px!important;margin:0!important;border-radius:12px!important}
+body.tvMode.mpp-fit-auto .shiftDash:not(#mppFit){padding:6px 8px!important}
+body.tvMode.mpp-fit-auto .shiftDash:not(.hiddenView):not(#mppFit){height:calc(100vh - var(--mpp-top,67px) - 4px)!important;max-height:calc(100vh - var(--mpp-top,67px) - 4px)!important}
+body.tvMode.mpp-fit-auto .shiftDash.mpp-fit-scroll .shiftDashBody:not(#mppFit){overflow-y:auto!important;overflow-x:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .lines:not(#mppFit){flex:0 0 auto!important;gap:var(--mpp-gap,8px)!important;grid-template-columns:repeat(var(--v3525-cols,10),minmax(0,var(--mpp-cw-max,1fr)))!important;justify-content:center!important;align-content:start!important;overflow:visible!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234Line:not(#mppFit){min-height:0!important;height:auto!important;display:flex!important;flex-direction:column!important;border-radius:calc(11px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineHead:not(#mppFit){padding:calc(5px*var(--mpp-s,1)) calc(7px*var(--mpp-s,1))!important;min-height:0!important;flex:0 0 auto!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineHead .bar:not(#mppFit){margin:0!important;padding:0!important;min-height:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineHead h3:not(#mppFit){font-size:calc(15px*var(--mpp-s,1))!important;line-height:1.1!important;letter-spacing:.4px!important}
+body.tvMode.mpp-fit-auto .shiftDash .v240-line-tools:not(#mppFit){margin:calc(3px*var(--mpp-s,1)) 0 0!important;padding:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .v240-line-tools button:not(#mppFit){font-size:calc(9px*var(--mpp-s,1))!important;line-height:1.1!important;padding:calc(3px*var(--mpp-s,1)) calc(8px*var(--mpp-s,1))!important;min-height:0!important;min-width:0!important;height:auto!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineBody:not(#mppFit){flex:1 1 0!important;min-height:0!important;display:flex!important;flex-direction:column!important;gap:calc(3px*var(--mpp-s,1))!important;padding:calc(5px*var(--mpp-s,1))!important;overflow:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235Slot:not(#mppFit),body.tvMode.mpp-fit-auto .shiftDash .v355-shared-slot:not(#mppFit),body.tvMode.mpp-fit-auto .shiftDash .v357-auto-shared:not(#mppFit){flex:1 1 0!important;min-height:calc(26px*var(--mpp-s,1))!important;max-height:calc(58px*var(--mpp-s,1))!important;margin:0!important;grid-template-columns:calc(32px*var(--mpp-s,1)) minmax(0,1fr)!important;align-items:stretch!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotRole:not(#mppFit){width:calc(32px*var(--mpp-s,1))!important;min-width:calc(32px*var(--mpp-s,1))!important;max-width:calc(32px*var(--mpp-s,1))!important;min-height:0!important;height:auto!important;padding:0!important;font-size:calc(9px*var(--mpp-s,1))!important;line-height:1!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson:not(#mppFit){min-height:0!important;height:auto!important;padding:calc(2px*var(--mpp-s,1)) calc(5px*var(--mpp-s,1))!important;justify-content:center!important;overflow:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234Name:not(#mppFit){font-size:calc(11.5px*var(--mpp-s,1))!important;line-height:1.08!important;white-space:normal!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;word-break:break-word!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234EmpId:not(#mppFit){font-size:calc(8.5px*var(--mpp-s,1))!important;line-height:1.05!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234Over:not(#mppFit){font-size:calc(9px*var(--mpp-s,1))!important;padding:calc(2px*var(--mpp-s,1)) calc(4px*var(--mpp-s,1))!important;margin:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineFoot:not(#mppFit){font-size:calc(8px*var(--mpp-s,1))!important;padding:calc(3px*var(--mpp-s,1)) calc(6px*var(--mpp-s,1))!important;min-height:0!important;flex:0 0 auto!important;white-space:nowrap!important;overflow:hidden!important;gap:calc(4px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto .shiftDash .v234LineFoot span:not(#mppFit){white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;min-width:0!important}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line:not(#mppFit){padding:calc(6px*var(--mpp-s,1))!important;overflow:hidden!important}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line h3:not(#mppFit){font-size:calc(14px*var(--mpp-s,1))!important;margin:0 0 calc(4px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person:not(#mppFit){height:auto!important;min-height:calc(22px*var(--mpp-s,1))!important;padding:calc(2px*var(--mpp-s,1)) calc(5px*var(--mpp-s,1))!important;font-size:calc(10px*var(--mpp-s,1))!important}
+body.tvMode.mpp-fit-auto header.head:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .shiftHeader:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .shiftDashBody > div[id$="ShiftTime"]:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .allocationSummary:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .v238Legend:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+body.tvMode.mpp-fit-auto .shiftDash .shiftDashBody > div[id$="AllocationMsg"]:not(#mppFit){zoom:var(--mpp-hs,1)!important}
+</style>
+<style id="mppSlotFixedHeight">
+/* Tinggi slot (CL/OP/INS) SAMA di semua kartu line. Slot tidak melar lagi;
+   sisa ruang kartu jadi gap kosong di bawah. Tinggi dihitung otomatis oleh script mppSlotFixedHeightScript
+   (muat untuk kartu dengan slot terbanyak). Fallback bila script belum jalan: 22px x skala. */
+body.tvMode.mpp-fit-auto .shiftDash .v234LineBody:not(#mppFit){justify-content:flex-start!important}
+body.tvMode.mpp-fit-auto .shiftDash .v235Slot:not(#mppFit),
+body.tvMode.mpp-fit-auto .shiftDash .v355-shared-slot:not(#mppFit),
+body.tvMode.mpp-fit-auto .shiftDash .v357-auto-shared:not(#mppFit){
+  flex:0 0 auto!important;
+  height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+  min-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+  max-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+}
+/* Isi slot: NAMA di atas, NIK di bawah. Font mengikuti tinggi slot.
+   Kalau slot terlalu pendek (class mpp-slot-inline dipasang script), otomatis jadi satu baris. */
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson:not(#mppFit){
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:center!important;
+  gap:0!important;padding:0 calc(14px*var(--mpp-s,1)) 0 calc(5px*var(--mpp-s,1))!important;overflow:hidden!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson .v234Name:not(#mppFit){
+  order:1!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;display:block!important;
+  white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;
+  -webkit-line-clamp:unset!important;-webkit-box-orient:initial!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.52)!important;line-height:1.1!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .v235SlotPerson .v234EmpId:not(#mppFit){
+  order:2!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:100%!important;display:block!important;
+  white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.36)!important;line-height:1.1!important;opacity:.8!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .lines.mpp-slot-inline .v235SlotPerson:not(#mppFit){
+  flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:calc(4px*var(--mpp-s,1))!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .lines.mpp-slot-inline .v235SlotPerson .v234Name:not(#mppFit){
+  flex:1 1 0!important;font-size:calc(var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))*.5)!important;line-height:1.2!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .lines.mpp-slot-inline .v235SlotPerson .v234EmpId:not(#mppFit){
+  max-width:42%!important;font-size:calc(var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))*.38)!important;line-height:1.2!important;
+}
+/* Kartu TUNGGU LINE: item sama tinggi dengan slot, nama atas + NIK bawah; kalau kebanyakan bisa di-scroll. */
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-list:not(#mppFit){
+  display:flex!important;flex-direction:column!important;gap:calc(3px*var(--mpp-s,1))!important;
+  flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:none!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-list:not(#mppFit)::-webkit-scrollbar{display:none}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person:not(#mppFit){
+  display:grid!important;grid-template-columns:calc(30px*var(--mpp-s,1)) minmax(0,1fr)!important;align-items:center!important;gap:calc(4px*var(--mpp-s,1))!important;
+  flex:0 0 auto!important;margin:0!important;padding:0 calc(5px*var(--mpp-s,1)) 0 0!important;overflow:hidden!important;
+  height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;min-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;max-height:var(--mpp-slot-h,calc(22px*var(--mpp-s,1)))!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person .roleName:not(#mppFit){
+  width:auto!important;min-width:0!important;max-width:none!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  padding:0!important;margin:0!important;font-size:calc(8px*var(--mpp-s,1))!important;line-height:1!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person > span:not(.roleName):not(#mppFit){
+  display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.52)!important;line-height:1.1!important;font-weight:800!important;
+}
+body.tvMode.mpp-fit-auto .shiftDash .mpp-waiting-line .mpp-waiting-person > span:not(.roleName) b:not(#mppFit){
+  order:2!important;display:block!important;font-weight:700!important;opacity:.8!important;
+  font-size:calc((var(--mpp-slot-h,calc(22px*var(--mpp-s,1))) - 4px)*.36)!important;line-height:1.1!important;
+}
+</style>
+<script id="mppSlotFixedHeightScript">
+(function(){'use strict';
+/* Hitung tinggi slot agar kartu dengan slot terbanyak PAS muat; semua kartu memakai tinggi yang sama. */
+function fit(){
+  if(!document.body||!document.body.classList.contains('tvMode'))return;
+  document.querySelectorAll('.shiftDash:not(.hiddenView) .lines').forEach(function(g){
+    var cards=[].slice.call(g.querySelectorAll(':scope > .v234Line:not(.mpp-waiting-line)'));
+    if(!cards.length)return;
+    var n=0,body=null;
+    cards.forEach(function(c){var k=c.querySelectorAll('.v235Slot').length;if(k>n)n=k;if(!body)body=c.querySelector('.v234LineBody')});
+    if(!n||!body)return;
+    var cs=getComputedStyle(body),pad=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0),gap=parseFloat(cs.rowGap)||0;
+    var s=parseFloat(getComputedStyle(g).getPropertyValue('--mpp-s'))||1;
+    var h=Math.floor(((body.clientHeight-pad-gap*(n-1))/n)*10)/10-0.6;
+    h=Math.max(14*s,Math.min(26*s,h));
+    var v=h.toFixed(1)+'px';
+    if(g.style.getPropertyValue('--mpp-slot-h')!==v)g.style.setProperty('--mpp-slot-h',v);
+    g.classList.toggle('mpp-slot-inline',h<20.5);
+  });
+}
+window.mppSlotFit=fit;
+window.addEventListener('resize',function(){setTimeout(fit,150)});
+setInterval(fit,800);
+document.addEventListener('DOMContentLoaded',function(){setTimeout(fit,300)},{once:true});
+})();
+</script>
+<script id="mppAutoFitScript">
+(function(){'use strict';
+/* Auto-fit: pilih jumlah kolom/baris supaya proporsi kartu tetap enak, lalu skalakan isi kartu.
+   Ganti ke preset lama (5/6/10 kolom): tambahkan ?fit=preset pada URL. Kembali: ?fit=auto */
+var KEY='tvFitMode';           /* tanpa awalan "mpp" => tidak disinkronkan antar perangkat */
+var REF_W=170,REF_H=320,TARGET=.59,MIN_S=.85,MAX_S=2.6,MAX_SKEW=.42;
+function mode(){
+  var q=/[?&]fit=(auto|preset)\b/.exec(location.search);
+  if(q){try{localStorage.setItem(KEY,q[1])}catch(e){}return q[1]}
+  try{return localStorage.getItem(KEY)==='preset'?'preset':'auto'}catch(e){return 'auto'}
+}
+function setVar(el,k,v){v=String(v);if(el.style.getPropertyValue(k)!==v)el.style.setProperty(k,v)}
+function forcedCols(){
+  var q=/[?&]cols=(auto|\d+)\b/.exec(location.search);
+  if(q){try{localStorage.setItem('tvFitCols',q[1])}catch(e){}}
+  var v=q?q[1]:null;if(!v){try{v=localStorage.getItem('tvFitCols')}catch(e){}}
+  if(v==='auto')return 0;
+  var n=parseInt(v,10);return n>=1&&n<=20?n:10;
+}
+function setBody(on){document.body.classList.toggle('mpp-fit-auto',on)}
+window.mppFitAuto=function(dash,grid,cards){
+  if(!document.body.classList.contains('tvMode')){setBody(false);return false}
+  if(mode()!=='auto'){setBody(false);return false}
+  setBody(true);
+  var N=cards.length;if(!N)return true;
+  var bodyEl=dash.querySelector('.shiftDashBody');
+  var hs=Math.max(1,Math.min(2.2,window.innerWidth/1920));
+  setVar(document.documentElement,'--mpp-hs',hs.toFixed(3));
+  var root=document.getElementById('threeShiftDashboard');
+  if(root)setVar(document.documentElement,'--mpp-top',Math.max(0,Math.round(root.getBoundingClientRect().top))+'px');
+  var cs=getComputedStyle(grid);
+  var padX=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0);
+  var padY=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);
+  var W=Math.max(100,grid.clientWidth-padX);
+  var top=grid.getBoundingClientRect().top+(bodyEl?bodyEl.scrollTop:0);
+  var H=Math.max(160,window.innerHeight-top-padY-8);
+  var g=Math.max(4,Math.min(12,Math.round(window.innerWidth/240)));
+  var minW=REF_W*MIN_S,minH=REF_H*MIN_S;
+  var best=null;
+  for(var cols=1;cols<=N;cols++){
+    var rows=Math.ceil(N/cols);
+    var cw=(W-g*(cols-1))/cols;
+    if(cw<minW&&cols>1)continue;
+    var chAvail=(H-g*(rows-1))/rows;
+    var ch=Math.max(minH,Math.min(chAvail,cw/MAX_SKEW));
+    var total=rows*ch+g*(rows-1);
+    var score=Math.abs(Math.log((cw/ch)/TARGET));
+    if(total>H)score+=.5*Math.log(total/H);
+    else if(total<H*.8)score+=.15*Math.log(H/total);
+    if(!best||score<best.score)best={score:score,cols:cols,rows:rows,cw:cw,ch:ch,total:total};
+  }
+  /* Jumlah kolom dipaksa (default 10). Ubah lewat URL: ?cols=8 , atau ?cols=auto untuk pilihan otomatis. */
+  var fc=forcedCols();
+  if(fc){
+    var wait=grid.querySelector(':scope > .mpp-waiting-line')&&cards.indexOf&&[].indexOf.call(cards,grid.querySelector(':scope > .mpp-waiting-line'))<0?1:0;
+    var rows2=Math.ceil((N+wait)/fc),cw2=(W-g*(fc-1))/fc,chAvail2=(H-g*(rows2-1))/rows2,ch2=Math.max(minH,Math.min(chAvail2,cw2/MAX_SKEW));
+    best={score:0,cols:fc,rows:rows2,cw:cw2,ch:ch2,total:rows2*ch2+g*(rows2-1)};
+  }
+  var s=Math.max(MIN_S,Math.min(MAX_S,Math.min(best.cw/REF_W,best.ch/REF_H)));
+  setVar(grid,'--v3525-cols',best.cols);
+  setVar(grid,'--v3525-rows',best.rows);
+  setVar(grid,'--v3525-grid-height',Math.ceil(best.total+padY)+'px');
+  setVar(grid,'--mpp-s',s.toFixed(3));
+  setVar(grid,'--mpp-gap',g+'px');
+  setVar(grid,'--mpp-cw-max',Math.round(REF_W*MAX_S*1.15)+'px');
+  dash.classList.toggle('mpp-fit-scroll',best.total>H+1);
+  dash.classList.remove('v3525-very-dense');
+  return true;
+};
+/* Pemicu mandiri: tidak bergantung pada penjadwal lama (yang bisa tertunda bila DOM terus berubah). */
+var lastSig='',timer=0;
+function sig(){
+  var g=document.querySelector('.shiftDash:not(.hiddenView) .lines');
+  var n=g?g.querySelectorAll(':scope > .v234Line').length:0;
+  return window.innerWidth+'x'+window.innerHeight+'/'+n;
+}
+function run(){
+  if(mode()!=='auto'||!document.body.classList.contains('tvMode'))return;
+  lastSig=sig();
+  if(typeof window.mppV3525FitAllThreeShifts==='function')window.mppV3525FitAllThreeShifts();
+}
+function kick(){clearTimeout(timer);timer=setTimeout(run,80)}
+window.addEventListener('resize',kick);
+window.addEventListener('orientationchange',kick);
+document.addEventListener('fullscreenchange',kick);
+setInterval(function(){if(mode()==='auto'&&document.body&&sig()!==lastSig)run()},800);
+document.addEventListener('DOMContentLoaded',function(){setBody(mode()==='auto'&&document.body.classList.contains('tvMode'));setTimeout(run,0)},{once:true});
+})();
+</script>
+<style id="mppV431TvParityStyle">
+/* Mode TV Full Screen index = tampilan tv.html (TV 42 inch lite). Hanya aktif saat body.tvMode. */
+body.mpp-tv42-lite{overflow:hidden!important}
+body.mpp-tv42-lite .top,body.mpp-tv42-lite header{min-height:0!important}
+body.mpp-tv42-lite .panel{display:none!important}
+body.mpp-tv42-lite #dash.panel{display:block!important}
+body.mpp-tv42-lite #dash{padding:2px!important;margin:0!important;height:100vh!important;overflow:hidden!important}
+body.mpp-tv42-lite.tv-density-8 #threeShiftDashboard .v234Grid,body.mpp-tv42-lite.tv-density-8 .v234Grid{grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-auto-flow:row!important}
+body.mpp-tv42-lite .v234Line{min-width:0!important;width:auto!important}
+body.mpp-tv42-lite #sessionWarn{display:none!important}
+</style>
+<script id="mppV431TvParityScript">
+(function(){'use strict';
+if(window.__MPP_V431_TV_PARITY__)return;window.__MPP_V431_TV_PARITY__=1;
+var LITE=['mpp-tv42-lite','mpp-tv42-ready','v240-tv-only'];
+function sync(){var b=document.body;if(!b)return;var on=b.classList.contains('tvMode');
+ LITE.forEach(function(c){if(b.classList.contains(c)!==on)b.classList.toggle(c,on)});
+ document.documentElement.classList.toggle('mpp-tv42-lite-on',on)}
+function start(){sync();try{new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:['class']})}catch(e){}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
+</script>
+<script src="/frontend/server_bridge.js"></script><script src="/frontend/device_bridge.js"></script><style id="mppWaitUnifiedCss">
 .mpp-waiting-line .mpp-v420-wait-count{display:none!important}
 /* TUNGGU LINE: tampilan baris sama dengan slot kartu line (badge peran + nama di atas + NIK di bawah) */
 .mpp-waiting-line .mpp-waiting-person.mppWaitUnified:not(#mppFit){
