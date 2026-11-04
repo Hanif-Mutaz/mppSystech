@@ -4026,7 +4026,17 @@ let busy=false;function run(){if(busy)return;busy=true;try{reconcile()}finally{b
 const rd=window.renderThreeShiftDashboard;if(typeof rd==='function')window.renderThreeShiftDashboard=function(){run();return rd.apply(this,arguments)};
 const rr=window.render;if(typeof rr==='function')window.render=function(){run();return rr.apply(this,arguments)};
 window.mppReconcileSharedMainLine=run;if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
-})();</script><script id="mppSharedDragMoveRule">(function(){
+})();</script>
+<style id="mppFinalTvParity">
+body.tvMode{background:#eef3f8!important;color:#172033!important}
+body.tvMode .head{background:linear-gradient(120deg,#1769ff,#4f8cff)!important;padding:8px 14px!important}
+body.tvMode .shiftDash{background:#f8fafc!important;filter:none!important;opacity:1!important}
+body.tvMode .shiftDash.currentPanel{background:#f0fdf4!important}
+body.tvMode .shiftDash.nextPanel{background:#f5f3ff!important}
+body.tvMode .tvToolbar button,body.tvMode [onclick*="tvMode"],body.tvMode [onclick*="fullscreen"]{padding:5px 8px!important;min-height:26px!important;font-size:10px!important;border-radius:6px!important}
+body.tvMode .shiftDash .lines{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(235px,1fr))!important;grid-auto-flow:row!important;overflow:visible!important}
+body.tvMode .shiftDash .line{display:block!important;visibility:visible!important;max-height:none!important}
+</style><script id="mppSharedDragMoveRule">(function(){
 'use strict';
 if(window.__MPP_SHARED_DRAG_MOVE__)return;window.__MPP_SHARED_DRAG_MOVE__=true;
 const KEY='mppV355SharedLeaders',T=v=>String(v==null?'':v).trim();let moving=null;
@@ -4744,7 +4754,23 @@ let per=window.persist;if(typeof per==='function')window.persist=function(){let 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 new MutationObserver(schedule).observe(document.getElementById('threeShiftDashboard')||document.body,{childList:true,subtree:true});
 })();
-</script><style id="mppV405RootFixStyle">
+</script><style id="mppV404TvVisualParity">
+/* TV visual parity with index utama V403. Keep TV auto-login/runtime behavior intact. */
+body.tvMode .wrap,body.v240-tv-only .wrap{max-width:1500px!important;margin:auto!important;padding:18px!important}
+body.tvMode #dash>.card,body.v240-tv-only #dash>.card{background:#fff!important;padding:16px!important;border-radius:14px!important;box-shadow:0 5px 18px #16355a17!important;margin-bottom:14px!important}
+body.tvMode .shiftDash,body.v240-tv-only .shiftDash{padding:16px!important;border-radius:16px!important}
+body.tvMode .shiftDash .lines,body.v240-tv-only .shiftDash .lines{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important;padding:4px!important}
+body.tvMode .shiftDash .line,body.v240-tv-only .shiftDash .line{padding:13px!important;border-radius:11px!important;box-shadow:0 4px 12px #0f172a12!important}
+body.tvMode .shiftDash .roleSlot,body.v240-tv-only .shiftDash .roleSlot{grid-template-columns:minmax(76px,105px) minmax(0,1fr)!important;font-size:12px!important;padding:6px!important;min-height:44px!important;line-height:normal!important}
+body.tvMode .shiftDash .line h3,body.v240-tv-only .shiftDash .line h3{font-size:16px!important}
+body.tvMode .mpp-waiting-line .mpp-waiting-person,body.v240-tv-only .mpp-waiting-line .mpp-waiting-person{min-height:44px!important;padding:6px!important;font-size:12px!important;line-height:normal!important}
+body.tvMode .mpp-waiting-line .mpp-waiting-person small,body.v240-tv-only .mpp-waiting-line .mpp-waiting-person small{font-size:10px!important}
+@media(max-width:1600px){body.tvMode .shiftDash .lines,body.v240-tv-only .shiftDash .lines{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:1200px){body.tvMode .shiftDash .lines,body.v240-tv-only .shiftDash .lines{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:900px){body.tvMode .shiftDash .lines,body.v240-tv-only .shiftDash .lines{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:600px){body.tvMode .shiftDash .lines,body.v240-tv-only .shiftDash .lines{grid-template-columns:1fr!important}}
+</style>
+<style id="mppV405RootFixStyle">
 /* Root fix: retire every old black manpower tooltip. CL/OP/INS use the white skill tooltip only. */
 #mppOpsTooltip,#mppRefineTooltip{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 #v2405SkillTip,#mppV3517CLTip{background:#fff!important;color:#10213a!important;border:2px solid #38bdf8!important}
@@ -5186,10 +5212,15 @@ body.mpp-tv42-lite.tv-density-8 #threeShiftDashboard .v234Grid,body.mpp-tv42-lit
 body.mpp-tv42-lite .v234Line{min-width:0!important;width:auto!important}
 body.mpp-tv42-lite #sessionWarn{display:none!important}
 </style>
+<style id="mppV432TvCardParityStyle">
+/* Mode TV Full Screen index = tv.html: header kartu line hanya nama line (tanpa pill AKTUAL/MASTER & tanggal|shift). */
+body.tvMode .v234LineHead .pill,body.tvMode .v234LineHead>small{display:none!important}
+</style>
+
 <script id="mppV431TvParityScript">
 (function(){'use strict';
 if(window.__MPP_V431_TV_PARITY__)return;window.__MPP_V431_TV_PARITY__=1;
-var LITE=['mpp-tv42-lite','mpp-tv42-ready','v240-tv-only'];
+var LITE=['mpp-tv42-lite','mpp-tv42-ready','v240-tv-only','tv-density-8'];
 function sync(){var b=document.body;if(!b)return;var on=b.classList.contains('tvMode');
  LITE.forEach(function(c){if(b.classList.contains(c)!==on)b.classList.toggle(c,on)});
  document.documentElement.classList.toggle('mpp-tv42-lite-on',on)}
