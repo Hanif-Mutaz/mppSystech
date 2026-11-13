@@ -5619,4 +5619,22 @@ if(typeof v234Drop==='function'){
 }
 })();
 </script>
+<script id="v2501DashboardTvPatch">
+/* Klik tab "Dashboard" langsung masuk Mode TV Full Screen (sama dengan tombol "Mode TV Full Screen").
+   Keluar tetap lewat Esc: fullscreenchange -> v2402ExitTVMode() mengembalikan ke dashboard biasa. */
+(function(){
+'use strict';
+function bind(){
+  const b=document.querySelector('.tab[data-p="dash"]');
+  if(!b||b.dataset.v2501)return;
+  b.dataset.v2501='1';
+  b.addEventListener('click',function(e){
+    if(!e.isTrusted)return; /* hanya klik asli user: fullscreen butuh user gesture, kalau tidak halaman tersangkut di tvMode tanpa fullscreen */
+    if(document.body.classList.contains('tvMode'))return;
+    if(typeof toggleTVMode==='function')toggleTVMode();
+  });
+}
+bind();
+})();
+</script>
 </body></html>
