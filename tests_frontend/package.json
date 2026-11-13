@@ -1,0 +1,6 @@
+{
+  "name": "mppsystech-frontend-tests",
+  "private": true,
+  "scripts": { "test": "node --test --test-force-exit" },
+  "devDependencies": { "jsdom": "^26.0.0" }
+}

@@ -3972,10 +3972,11 @@ setTimeout(removeKpiMenu,0);
 'use strict';
 if(window.__MPP_OPT_INS_SKILL1_SCAN__)return;window.__MPP_OPT_INS_SKILL1_SCAN__=true;
 const T=v=>String(v==null?'':v).trim(),U=v=>T(v).toUpperCase().replace(/_/g,' ').replace(/\s+/g,' ');
-function role(e){const p=U(e.Position||e.Jabatan||e.Role);if(p.includes('CELL LEADER')||p==='CL'||p.includes('LEADER'))return 'CL';if(p.includes('INSPECTOR')||p.includes('INSPEKTOR')||p==='INS')return 'INS';return 'OPT'}
+function role(e){return window.mppSkillRules.autoRole(e)}
 function proc(v){let x=U(v);if(x==='INS'||x==='INSPEKTOR'||x==='INSPECTOR')return 'INSPECTOR';let m=x.match(/^(?:OPT|OPERATOR)\s*([1-9][0-9]*)$/);return m?'OPT '+m[1]:x}
-function skillTargets(emp){const rows=(db.Skill_Matrix||[]).filter(r=>T(r.EmpID)===T(emp));if(!rows.length)return [];const out=[],seen=new Set();function add(line,job,n){line=T(line);job=proc(job);const key=U(line)+'|'+U(job);if(line&&job&&!seen.has(key)){seen.add(key);out.push({line,job,skillNo:n})}}for(const row of rows){for(let li=1;li<=5;li++){const line=T(row['Skill Line '+li]||(li===1?row['Skill Line']:''));for(let pi=1;pi<=5;pi++)add(line,row['Skill Line '+li+' Proses '+pi]||(pi===1?(row['Skill Proses '+li]||row['Skill '+li]):''),li)}if(row['Skill Line'])for(let i=1;i<=10;i++)add(row['Skill Line'],row['Skill Proses '+i]||row['Skill '+i],1)}return out} function slotReason(p,date,shift,r){if(!p)return 'SKILL_KOSONG';if(r==='OPT'&&!/^OPT [1-9][0-9]*$/.test(p.job))return 'PROSES_TIDAK_SESUAI_OPT';if(r==='INS'&&p.job!=='INSPECTOR')return 'PROSES_TIDAK_SESUAI_INS';const lm=(db.Master_Line||[]).find(x=>T(x.Line)===p.line);if(!lm)return 'LINE_TIDAK_ADA';const active=(typeof activeLines==='function'?activeLines(date,shift):[]).map(T);if(active.length&&!active.includes(p.line))return 'LINE_TIDAK_AKTIF';const occupied=(assigns||[]).some(a=>a.date===date&&a.shift===shift&&T(a.line)===p.line&&proc(a.job)===p.job);if(occupied)return 'SLOT_PENUH';return 'TERSEDIA'}
-function clPlacement(emp,date,shift){let a=[];try{a=JSON.parse(localStorage.getItem('mppV355SharedLeaders')||'[]')}catch(e){}if(!Array.isArray(a))return null;const c=a.find(x=>T(x.emp)===T(emp));if(!c)return null;let main=T(c.mainLine);if(!main&&Array.isArray(c.lines)&&c.lines.length){main=T(c.lines[0]);c.mainLine=main;c.lines=c.lines.map(T).filter(x=>x&&x!==main);localStorage.setItem('mppV355SharedLeaders',JSON.stringify(a));window.v355SharedLeaders=a}if(!main)return null;const active=(typeof activeLines==='function'?activeLines(date,shift):[]).map(T);if(active.length&&!active.includes(main))return null;return {line:main,job:'CELL LEADER',shared:c.lines||[]}}
+function skillTargets(emp){return window.mppSkillRules.targets(emp)}
+function slotReason(p,date,shift,r){return window.mppSkillRules.slotReason(p,date,shift)}
+function clPlacement(emp,date,shift){let a=[];try{a=JSON.parse(localStorage.getItem('mppV355SharedLeaders')||'[]')}catch(e){}if(!Array.isArray(a))return null;const c=a.find(x=>T(x.emp)===T(emp));if(!c)return null;let main=T(c.mainLine);if(!main&&Array.isArray(c.lines)&&c.lines.length){main=T(c.lines[0]);c.mainLine=main;c.lines=c.lines.map(T).filter(x=>x&&x!==main);localStorage.setItem('mppV355SharedLeaders',JSON.stringify(a));window.v355SharedLeaders=a}if(!main)return null;const active=(typeof activeLines==='function'?activeLines(date,shift):[]).map(T);if(!active.includes(main))return null;return {line:main,job:'CELL LEADER',shared:c.lines||[]}}
 function validSlot(p,date,shift,r){return slotReason(p,date,shift,r)==='TERSEDIA'}
 function finalScanIn(){
  const e=findScannedEmployee(),now=new Date(),ctx=getScanInContext(now);if(!e)return msg(false,'Barcode atau EmpID tidak ditemukan.');
@@ -3984,11 +3985,11 @@ function finalScanIn(){
  if(scanBlocked(e,now))return msg(false,'DUPLIKAT SCAN: Tunggu sampai 60 detik dari scan terakhir.');
  const open=attendance.find(a=>a.emp===e.EmpID&&!a.out);if(open)return msg(false,'SCAN MASUK DITOLAK: Karyawan masih memiliki absensi terbuka pada '+open.date+', '+open.shift+'.');
  if(assigns.some(a=>a.emp===e.EmpID&&a.date===date&&a.shift===sh))return msg(false,'ANTI DOUBLE ASSIGNMENT: Karyawan sudah ditempatkan untuk '+date+', '+sh+'.');
- const r=role(e),targets=(r==='OPT'||r==='INS')?skillTargets(e.EmpID):[],evaluated=targets.map(x=>{const targetRole=proc(x.job)==='INSPECTOR'?'INS':'OPT';return Object.assign({},x,{targetRole,reason:slotReason(x,date,sh,targetRole)})}),clp=r==='CL'?clPlacement(e.EmpID,date,sh):null,place=r==='CL'?clp:(evaluated.find(x=>x.reason==='TERSEDIA')||null),firstTarget=evaluated[0]||null;
+ const r=role(e),targets=r==='OPT'?skillTargets(e.EmpID):[],evaluated=targets.map(x=>{const targetRole=proc(x.job)==='INSPECTOR'?'INS':'OPT';return Object.assign({},x,{targetRole,reason:slotReason(x,date,sh,targetRole)})}),clp=r==='CL'?clPlacement(e.EmpID,date,sh):null,place=r==='CL'?clp:(evaluated.find(x=>x.reason==='TERSEDIA')||null),firstTarget=evaluated[0]||null;
  const a={emp:e.EmpID,barcode:e.Barcode,name:e.Nama,date,workDate:date,shift:sh,in:now.toLocaleTimeString('id-ID',{hour12:false}),inDateTime:now.toLocaleString('id-ID',{hour12:false}),inISO:now.toISOString(),shiftStartISO:ctx&&ctx.startDateTime?ctx.startDateTime.toISOString():'',shiftEndISO:ctx&&ctx.endDateTime?ctx.endDateTime.toISOString():'',scanWindow:ctx?formatShiftWindow(ctx):'NON SHIFT',out:'',outDateTime:'',duration:'',line:'',job:'',status:'CHECK IN'};
  attendance.unshift(a);lastScans[e.EmpID]=now.toISOString();
  if(place){assigns.push({emp:e.EmpID,name:e.Nama,shift:sh,line:place.line,job:place.job,date,workDate:date,assignmentSource:r==='CL'?'SHARED_CL_MAIN':'EXACT_SKILL_SLOT_'+(place.skillNo||1),locked:true});a.line=place.line;a.job=place.job;a.status='CHECK IN - AUTO ASSIGNED EXACT SKILL '+(place.skillNo||1);delete a.waitingLine;delete a.waitingReason;delete a.waitingSinceISO;persist();syncDashboardAfterScan(date,sh,place.line);audit((r==='CL'?'AUTO ASSIGN CL SHARED: ':'AUTO ASSIGN EXACT SKILL SLOT: ')+e.EmpID+' -> '+place.line+' / '+place.job);msg(true,'SCAN MASUK: '+e.Nama+' ditempatkan otomatis ke '+place.line+' / '+place.job+(r==='CL'?' berdasarkan konfigurasi Shared CL.':' sesuai Skill Matrix prioritas '+(place.skillNo||1)+'.'));}
- else{const full=evaluated.filter(x=>x.reason==='SLOT_PENUH'),inactive=evaluated.filter(x=>x.reason==='LINE_TIDAK_AKTIF');const detail=r==='CL'?'Belum ada konfigurasi Shared CL dengan line utama aktif.':!targets.length?'Skill Line / Skill Proses belum tersedia.':full.length===evaluated.length?'Semua slot tujuan sesuai Skill Matrix penuh. Operator masuk Waiting Line dan tidak dipindah ke nomor OPT lain yang tidak dikuasai.':firstTarget&&firstTarget.reason==='SLOT_PENUH'?'Slot '+firstTarget.line+' / '+firstTarget.job+' penuh; skill prioritas berikutnya sudah diperiksa tetapi tidak ada slot sesuai yang tersedia.':inactive.length===evaluated.length?'Semua line pada Skill Matrix sedang tidak aktif.':'Tidak ada slot aktif yang tepat sesuai Skill Line dan Skill Proses.';a.waitingReason=detail;a.waitingLine=true;a.waitingSinceISO=now.toISOString();a.skillTargets=evaluated.map(x=>({line:x.line,job:x.job,skillNo:x.skillNo,reason:x.reason}));persist();audit('SCAN MASUK WAITING EXACT SKILL: '+e.EmpID+' - '+detail);msg(false,'SCAN MASUK BERHASIL, MENUNGGU LINE: '+e.Nama+'. '+detail);}
+ else{const full=evaluated.filter(x=>x.reason==='SLOT_PENUH'),inactive=evaluated.filter(x=>x.reason==='LINE_TIDAK_AKTIF');const detail=r==='NONE'?window.mppSkillRules.noAutoMsg(e):window.mppSkillRules.planEmpty(date,sh)?window.mppSkillRules.planEmptyMsg(date,sh):r==='CL'?'Belum ada konfigurasi Shared CL dengan line utama aktif.':!targets.length?'Skill Line / Skill Proses belum tersedia.':full.length===evaluated.length?'Semua slot tujuan sesuai Skill Matrix penuh. Operator masuk Waiting Line dan tidak dipindah ke nomor OPT lain yang tidak dikuasai.':firstTarget&&firstTarget.reason==='SLOT_PENUH'?'Slot '+firstTarget.line+' / '+firstTarget.job+' penuh; skill prioritas berikutnya sudah diperiksa tetapi tidak ada slot sesuai yang tersedia.':inactive.length===evaluated.length?'Semua line pada Skill Matrix sedang tidak aktif.':'Tidak ada slot aktif yang tepat sesuai Skill Line dan Skill Proses.';a.waitingReason=detail;a.waitingLine=true;a.waitingSinceISO=now.toISOString();a.skillTargets=evaluated.map(x=>({line:x.line,job:x.job,skillNo:x.skillNo,reason:x.reason}));persist();audit('SCAN MASUK WAITING EXACT SKILL: '+e.EmpID+' - '+detail);msg(false,'SCAN MASUK BERHASIL, MENUNGGU LINE: '+e.Nama+'. '+detail);}
  const b=document.getElementById('barcode');if(b)b.value='';
 }
 window.scanIn=finalScanIn;
@@ -4944,7 +4945,7 @@ function normalizeRole(x){x=U(x);if(x==='CL'||x.includes('CELL LEADER'))return '
 function targetOf(node){let line=node.closest('.v234Line[data-line]');if(!line)return null;let slot=node.closest('.v235Slot,.v238ProcessTarget,[data-process]'),job=slot?T(slot.dataset.process||slot.querySelector('.v235SlotRole')?.textContent):'';return{line:T(line.dataset.line),date:T(line.dataset.date),shift:T(line.dataset.shift),job:normalizeRole(job)}}
 function payload(el){let box=el.closest('.mpp-waiting-line'),q=box&&box.closest('.shiftDash')?.querySelector('.v234Line[data-date][data-shift]');return{emp:T(el.dataset.emp),date:T(el.dataset.date||box?.dataset.date||q?.dataset.date),shift:T(el.dataset.shift||box?.dataset.shift||q?.dataset.shift)}}
 function clearStale(w){for(let i=assigns.length-1;i>=0;i--){let a=assigns[i];if(EQ(a.emp,w.emp)&&EQ(a.date||a.workDate,w.date)&&EQ(a.shift,w.shift)&&!T(a.line))assigns.splice(i,1)}}
-function place(w,t){if(!w||!t)return;if(!EQ(w.date,t.date)||!EQ(w.shift,t.shift))return alert('Tanggal kerja atau shift tujuan berbeda.');clearStale(w);let exists=assigns.some(a=>EQ(a.emp,w.emp)&&EQ(a.date||a.workDate,w.date)&&EQ(a.shift,w.shift)&&T(a.line));if(exists)return alert('Karyawan sudah berada pada line aktif. Refresh dashboard.');let emp=master(w.emp);if(!T(emp.EmpID))return alert('Data karyawan tidak ditemukan.');let requested=t.job||'';let pick=null;try{pick=v2409ChooseWaitingJob(w,t.line,requested||null)}catch(e){}if(!pick&&requested)pick={job:requested,process:requested,skillMatch:false,extra:false};if(!pick){let roles=typeof v234MasterRoles==='function'?v234MasterRoles((db.Master_Line||[]).find(x=>EQ(x.Line,t.line))||{}):[];let occupied=new Set(assigns.filter(a=>EQ(a.date||a.workDate,w.date)&&EQ(a.shift,w.shift)&&EQ(a.line,t.line)).map(a=>normalizeRole(a.job)));let free=roles.map(normalizeRole).find(x=>!occupied.has(x));if(free)pick={job:free,process:free,skillMatch:false,extra:false}}if(!pick)return alert('Tidak ada slot kosong pada line tujuan.');if(!confirm('Tempatkan '+T(emp.Nama)+' ke '+t.line+' / '+(typeof v238DisplayJob==='function'?v238DisplayJob(pick.job):pick.job)+'?'))return;assigns.push({emp:w.emp,name:emp.Nama,date:w.date,workDate:w.date,shift:w.shift,line:t.line,job:pick.job,isExtra:false,skillProcess:pick.process||pick.job,skillStatus:pick.skillMatch?'MATCH':'MANUAL_OVERRIDE',assignmentSource:'WAITING_FREE_DROP',movedBy:currentUser&&currentUser.username,movedAt:new Date().toISOString()});let at=attendance.find(a=>EQ(a.emp,w.emp)&&EQ(a.date||a.workDate,w.date)&&EQ(a.shift,w.shift)&&!T(a.out));if(at){at.line=t.line;at.job=pick.job;at.status='CHECK IN - MANUAL ASSIGNED';delete at.waitingLine;delete at.waitingReason;delete at.waitingSinceISO}persist();if(typeof audit==='function')audit('WAITING FREE DROP '+w.emp+' -> '+t.line+' / '+pick.job);renderThreeShiftDashboard()}
+function place(w,t){if(!w||!t)return;if(!EQ(w.date,t.date)||!EQ(w.shift,t.shift))return alert('Tanggal kerja atau shift tujuan berbeda.');clearStale(w);let exists=assigns.some(a=>EQ(a.emp,w.emp)&&EQ(a.date||a.workDate,w.date)&&EQ(a.shift,w.shift)&&T(a.line));if(exists)return alert('Karyawan sudah berada pada line aktif. Refresh dashboard.');let emp=master(w.emp);if(!T(emp.EmpID))return alert('Data karyawan tidak ditemukan.');let requested=t.job||'';let pick=null;try{pick=v2409ChooseWaitingJob(w,t.line,requested||null)}catch(e){}if(!pick&&requested)pick={job:requested,process:requested,skillMatch:false,extra:false};if(!pick){let roles=typeof v234MasterRoles==='function'?v234MasterRoles((db.Master_Line||[]).find(x=>EQ(x.Line,t.line))||{}):[];let occupied=new Set(assigns.filter(a=>EQ(a.date||a.workDate,w.date)&&EQ(a.shift,w.shift)&&EQ(a.line,t.line)).map(a=>normalizeRole(a.job)));let free=roles.map(normalizeRole).find(x=>!occupied.has(x));if(free)pick={job:free,process:free,skillMatch:false,extra:false}}if(!pick)return alert('Tidak ada slot kosong pada line tujuan.');const g=window.mppSkillRules?window.mppSkillRules.gate(w.emp,t.line,pick.process||pick.job):{proceed:true,overridden:false,reason:''};if(!g.proceed)return;if(!g.overridden&&!confirm('Tempatkan '+T(emp.Nama)+' ke '+t.line+' / '+(typeof v238DisplayJob==='function'?v238DisplayJob(pick.job):pick.job)+'?'))return;assigns.push({emp:w.emp,name:emp.Nama,date:w.date,workDate:w.date,shift:w.shift,line:t.line,job:pick.job,isExtra:false,skillProcess:pick.process||pick.job,skillStatus:g.overridden?'MANUAL_OVERRIDE':'MATCH',overrideReason:g.reason||'',assignmentSource:'WAITING_FREE_DROP',movedBy:currentUser&&currentUser.username,movedAt:new Date().toISOString()});let at=attendance.find(a=>EQ(a.emp,w.emp)&&EQ(a.date||a.workDate,w.date)&&EQ(a.shift,w.shift)&&!T(a.out));if(at){at.line=t.line;at.job=pick.job;at.status='CHECK IN - MANUAL ASSIGNED';delete at.waitingLine;delete at.waitingReason;delete at.waitingSinceISO}persist();if(typeof audit==='function')audit('WAITING FREE DROP '+w.emp+' -> '+t.line+' / '+pick.job);renderThreeShiftDashboard()}
 /* Override legacy entry point so old drop zones can never fail on a missing waiting assignment. */
 window.v2409PlaceWaiting=function(w,line,requestedProcess){place(w,{line:T(line),date:T(w.date),shift:T(w.shift),job:normalizeRole(requestedProcess||'')})};
 function bind(){document.querySelectorAll('.mpp-waiting-person[data-emp]').forEach(el=>{el.draggable=true;el.ondragstart=function(e){dragWait=payload(el);e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-v240-wait',JSON.stringify(dragWait));e.dataTransfer.setData('text/plain','WAIT:'+dragWait.emp)};el.ondragend=function(){dragWait=null;document.querySelectorAll('.v414-drop-ok').forEach(x=>x.classList.remove('v414-drop-ok'))}})}
@@ -5359,6 +5360,263 @@ window.skillWideRows=function(){let out=[];for(const r of groupedRows())for(cons
 let migrated=groupedRows();db.Skill_Matrix=migrated;persist();
 let baseRender=window.render;window.render=function(){baseRender();setup();renderSkillTable2313()};
 setTimeout(function(){setup();renderSkillTable2313();let id=$('seEmp')&&$('seEmp').value;if(id)loadSkillEditor2313(id)},0);
+})();
+</script>
+<script id="v2500SkillRulesPatch">
+/* V2.50.0 - Satu sumber aturan Skill / Line / Position untuk scan, drag-drop, dan import.
+   Aturan:
+   1. Skill Proses terikat ke Skill Line (pasangan Line + Proses). Scan dan drag-drop memakai fungsi yang sama.
+      Drag-drop ke pasangan yang belum punya skill = PERINGATAN (ADMIN/SUPERVISOR boleh lanjut dengan alasan), tidak diblokir total.
+   2. Konversi format Excel lama/baru ke 'Skill Entries' tidak mengacak pasangan dan tidak membuang proses yang sama di line berbeda.
+   3. Hanya Cell Leader yang boleh lebih dari 1 per line. Inspector maksimal 1.
+   4. Tidak ada swap diam-diam Inspector <-> Opt. Data yang mencurigakan ditolak saat import dengan pesan jelas.
+   5. Auto-assign hanya ke line yang dicentang di Line Aktif Harian. Plan kosong = auto-assign ditolak.
+   6. Validasi import: Skill Line ada, Skill Proses valid untuk line itu, tidak melebihi kapasitas, pasangan tidak kosong sebelah.
+   7. Auto-assign saat scan hanya untuk Position OPERATOR dan CELL LEADER. Position lain hanya tercatat absen. */
+(function(){
+'use strict';
+if(window.mppSkillRules)return;
+const T=v=>String(v==null?'':v).trim(),U=v=>T(v).toUpperCase();
+const proc=v=>typeof v238Proc==='function'?v238Proc(v):U(v).replace(/\s+/g,' ');
+const isExtra=j=>typeof v238IsExtra==='function'?v238IsExtra(j):/^EXTRA\s*-/i.test(T(j));
+const display=j=>typeof v238DisplayJob==='function'?v238DisplayJob(j):T(j);
+const toInt=v=>Math.max(0,Math.floor(Number(v)||0));
+const findEmp=id=>((typeof db!=='undefined'&&db.Master_Karyawan)||[]).find(e=>T(e.EmpID)===T(id));
+const masterLine=line=>((typeof db!=='undefined'&&db.Master_Line)||[]).find(l=>T(l.Line)===T(line));
+
+/* ---------- Aturan 3: slot per line ---------- */
+window.v234MasterRoles=function(l){
+  l=l||{};
+  const cell=toInt(l['Cell Leader']),opt=toInt(l['Opt Produksi']),ins=toInt(l.Inspector)>0?1:0,roles=[];
+  for(let i=1;i<=cell;i++)roles.push(i===1?'CELL LEADER':'CELL LEADER '+i);
+  for(let i=1;i<=opt;i++)roles.push('OPT '+i);
+  if(ins)roles.push('INSPECTOR');
+  return roles;
+};
+
+/* ---------- Aturan 4: tidak ada swap diam-diam ---------- */
+window.normalizeLine2312=function(l){
+  l=l||{};
+  const cell=toInt(l['Cell Leader']),ins=toInt(l.Inspector),opt=toInt(l['Opt Produksi']);
+  return {...l,Line:T(l.Line),'Cell Leader':cell,Inspector:ins,'Opt Produksi':opt,Total:cell+Math.min(ins,1)+opt};
+};
+
+/* ---------- Aturan 2: konversi ke format kanonik 'Skill Entries' ---------- */
+function convertRows(rows,issues){
+  const byEmp=new Map();
+  (rows||[]).forEach((r,idx)=>{
+    r=r||{};
+    const id=T(r.EmpID),row=idx+2;
+    if(!id)return;
+    let z=byEmp.get(id);
+    if(!z){z={EmpID:id,Nama:T(r.Nama),'Skill Entries':[]};byEmp.set(id,z)}
+    if(!z.Nama)z.Nama=T(r.Nama);
+    const add=(line,p,pri)=>{line=T(line);p=T(p);if(line&&p)z['Skill Entries'].push({line,process:p,priority:Number(pri)||0,_seq:z['Skill Entries'].length})};
+    if(Array.isArray(r['Skill Entries'])){
+      r['Skill Entries'].forEach(e=>add(e.line||e.Line||e['Skill Line'],e.process||e.Proses||e['Skill Proses'],e.priority||e.Urutan));
+      return;
+    }
+    const singleLine=T(r['Skill Line']);
+    if(singleLine){
+      /* Format baris-per-line (lama: Skill Line + Skill 1..N) atau baris-per-pasangan (Skill Line + Skill Proses + Urutan). */
+      let found=0;
+      const one=T(r['Skill Proses']);
+      if(one){add(singleLine,one,r.Urutan);found++}
+      for(let i=1;i<=100;i++){const p=T(r['Skill Proses '+i]||r['Skill '+i]||r['Skill Job '+i]);if(p){add(singleLine,p,0);found++}}
+      if(!found)issues.push({level:'error',text:'Skill_Matrix baris '+row+' ('+id+'): Skill Line '+singleLine+' belum punya Skill Proses.'});
+      return;
+    }
+    /* Format lebar: Skill Line N berpasangan dengan Skill Proses N (atau 'Skill Line N Proses M' untuk banyak proses per line). */
+    const lineNo=new Map(),plain=new Map(),nested=new Map();
+    for(const k of Object.keys(r)){
+      const v=T(r[k]);if(!v)continue;
+      let m=k.match(/^Skill Line (\d+)$/);if(m){lineNo.set(+m[1],v);continue}
+      m=k.match(/^Skill Line (\d+) Proses (\d+)$/);if(m){const li=+m[1];if(!nested.has(li))nested.set(li,[]);nested.get(li).push({pi:+m[2],v});continue}
+      m=k.match(/^Skill Proses (\d+)$/)||k.match(/^Skill (\d+)$/)||k.match(/^Skill Job (\d+)$/);if(m){if(!plain.has(+m[1]))plain.set(+m[1],v)}
+    }
+    [...lineNo.keys()].sort((a,b)=>a-b).forEach(li=>{
+      const line=lineNo.get(li),procs=[];
+      if(plain.has(li))procs.push(plain.get(li));
+      (nested.get(li)||[]).sort((a,b)=>a.pi-b.pi).forEach(x=>procs.push(x.v));
+      if(!procs.length)issues.push({level:'error',text:'Skill_Matrix baris '+row+' ('+id+'): Skill Line '+li+' ('+line+') belum punya Skill Proses.'});
+      procs.forEach(p=>add(line,p,0));
+    });
+    plain.forEach((p,n)=>{if(!lineNo.has(n))issues.push({level:'error',text:'Skill_Matrix baris '+row+' ('+id+'): Skill Proses '+n+' ('+p+') tidak punya pasangan Skill Line '+n+'.'})});
+    nested.forEach((list,li)=>{if(!lineNo.has(li))issues.push({level:'error',text:'Skill_Matrix baris '+row+' ('+id+'): Skill Line '+li+' Proses ... ('+list.map(x=>x.v).join(', ')+') tidak punya Skill Line '+li+'.'})});
+  });
+  const out=[];
+  byEmp.forEach(z=>{
+    const seen=new Set(),list=z['Skill Entries'].slice().sort((a,b)=>((a.priority||1e6)-(b.priority||1e6))||(a._seq-b._seq)),entries=[];
+    list.forEach(e=>{
+      const k=U(e.line)+'|'+proc(e.process);
+      if(seen.has(k)){issues.push({level:'warning',text:'Skill duplikat diabaikan: '+z.EmpID+' / '+e.line+' / '+e.process});return}
+      seen.add(k);entries.push({line:e.line,process:e.process,priority:entries.length+1});
+    });
+    out.push({EmpID:z.EmpID,Nama:z.Nama,'Skill Entries':entries});
+  });
+  return out;
+}
+window.wideSkill2312=function(rows){return convertRows(Array.isArray(rows)?rows:[],[])};
+
+const issueMap=new WeakMap();
+const baseNormalize=window.normalizeV230Workbook;
+window.normalizeV230Workbook=function(x){
+  x=x||{};
+  const original=Array.isArray(x.Skill_Matrix)?x.Skill_Matrix:[];
+  if(typeof baseNormalize==='function')x=baseNormalize(x)||x;
+  const issues=[];
+  x.Skill_Matrix=convertRows(original,issues);
+  const prev=issueMap.get(x)||[],keys=new Set(prev.map(i=>i.level+'|'+i.text));
+  issueMap.set(x,prev.concat(issues.filter(i=>!keys.has(i.level+'|'+i.text))));
+  return x;
+};
+window.prepareImportedDatabase=window.normalizeV230Workbook;
+
+/* Mode MERGE: baris skill hasil konversi sudah kanonik. Jangan lewat v239NormalizeRow (membaca kolom lebar dan mengosongkan entry). */
+if(typeof window.mergeImportedMaster==='function'){
+  const baseMerge=window.mergeImportedMaster;
+  window.mergeImportedMaster=function(x){
+    const out=baseMerge(Object.assign({},x,{Skill_Matrix:[]}));
+    const current=typeof v239Rows==='function'?v239Rows():(db.Skill_Matrix||[]);
+    const sm=new Map(current.map(r=>[T(r.EmpID),r]));
+    convertRows(x.Skill_Matrix||[],[]).forEach(r=>sm.set(T(r.EmpID),r));
+    out.Skill_Matrix=[...sm.values()];
+    return out;
+  };
+}
+
+/* ---------- Aturan 6: validasi import ---------- */
+window.validateImportDetailed=function(x){
+  x=window.normalizeV230Workbook(x);
+  const errors=[],warnings=[],kar=x.Master_Karyawan||[],lines=x.Master_Line||[],skills=x.Skill_Matrix||[];
+  if(!kar.length)errors.push('Master_Karyawan kosong.');
+  if(!skills.length)errors.push('Skill_Matrix kosong.');
+  if(!lines.length)errors.push('Master_Line kosong.');
+  const empMap=new Map(kar.map(e=>[T(e.EmpID),e])),lineMap=new Map();
+  lines.forEach((l,i)=>{
+    const row=i+2,name=T(l.Line);
+    if(!name){errors.push('Master_Line baris '+row+': Line wajib diisi.');return}
+    lineMap.set(name,l);
+    const ins=toInt(l.Inspector),opt=toInt(l['Opt Produksi']);
+    if(ins>1)errors.push('Master_Line baris '+row+' ('+name+'): Inspector = '+ins+'. Inspector maksimal 1 per line; hanya Cell Leader yang boleh lebih dari 1.'+(opt<=1?' Kolom Inspector dan Opt Produksi kemungkinan tertukar di file Excel. Perbaiki di Excel, sistem tidak mengoreksi otomatis.':''));
+  });
+  skills.forEach(r=>{
+    const id=T(r.EmpID),emp=empMap.get(id);
+    if(!emp)errors.push('Skill_Matrix: EmpID tidak ada di Master_Karyawan: '+id);
+    const reported=new Set();
+    (r['Skill Entries']||[]).forEach(e=>{
+      const lm=lineMap.get(T(e.line)),p=proc(e.process);
+      if(!lm){const k='L|'+e.line;if(!reported.has(k)){reported.add(k);errors.push('Skill Line tidak ada di Master_Line: '+e.line+' ('+id+')')}return}
+      const roles=window.v234MasterRoles(lm).map(proc);
+      if(!roles.includes(p)){
+        const m=p.match(/^OPT (\d+)$/);
+        errors.push(m?'Skill_Matrix '+id+': '+e.process+' melebihi kapasitas '+e.line+' (maksimal OPT '+toInt(lm['Opt Produksi'])+').'
+                     :'Skill_Matrix '+id+': proses "'+e.process+'" tidak dikenali pada '+e.line+'. Proses valid: '+roles.join(', ')+'.');
+        return;
+      }
+      if(/^CELL LEADER/.test(p)&&emp&&autoRole(emp)==='OPT')warnings.push('Skill_Matrix '+id+': skill '+e.process+' pada '+e.line+' tidak dipakai auto-assign karena Position '+(emp.Position||'OPERATOR')+' bukan CELL LEADER.');
+    });
+    if(emp&&autoRole(emp)==='NONE'&&(r['Skill Entries']||[]).length)warnings.push('Skill_Matrix '+id+': Position '+emp.Position+' tidak di-auto-assign saat scan (hanya OPERATOR dan CELL LEADER).');
+  });
+  (issueMap.get(x)||[]).forEach(i=>(i.level==='error'?errors:warnings).push(i.text));
+  return {errors,warnings,summary:{employees:kar.length,skills:skills.length,lines:lines.length}};
+};
+
+/* ---------- Aturan 1, 5, 7: pencocokan skill, slot, dan Position ---------- */
+function targets(empId){
+  const list=(typeof v238SkillPairs==='function'?v238SkillPairs(empId):[])||[],seen=new Set(),out=[];
+  list.forEach((p,i)=>{
+    const line=T(p.line),job=proc(p.process),k=U(line)+'|'+job;
+    if(!line||!job||seen.has(k))return;
+    seen.add(k);out.push({line,job,skillNo:p.linePriority||p.pair||i+1});
+  });
+  return out;
+}
+const hasSkill=(empId,line,process)=>targets(empId).some(t=>U(t.line)===U(line)&&t.job===proc(process));
+const lineSkills=(empId,line)=>targets(empId).filter(t=>U(t.line)===U(line)).map(t=>t.job);
+const planOf=(date,shift)=>((typeof activeLines==='function'?activeLines(date,shift):[])||[]).map(T);
+function slotReason(p,date,shift){
+  if(!p)return 'SKILL_KOSONG';
+  const lm=masterLine(p.line);
+  if(!lm)return 'LINE_TIDAK_ADA';
+  const plan=planOf(date,shift);
+  if(!plan.length)return 'PLAN_KOSONG';
+  if(!plan.includes(T(p.line)))return 'LINE_TIDAK_AKTIF';
+  if(/^CELL LEADER/.test(p.job))return 'PROSES_BUKAN_UNTUK_OPERATOR';
+  if(!window.v234MasterRoles(lm).map(proc).includes(p.job))return 'PROSES_TIDAK_ADA_DI_LINE';
+  const taken=(typeof assigns!=='undefined'?assigns:[]).some(a=>T(a.date||a.workDate)===T(date)&&T(a.shift)===T(shift)&&T(a.line)===T(p.line)&&!isExtra(a.job)&&proc(display(a.job))===p.job);
+  return taken?'SLOT_PENUH':'TERSEDIA';
+}
+function autoRole(e){
+  const p=U(e&&e.Position).replace(/_/g,' ').replace(/\s+/g,' ');
+  if(!p||p==='OPERATOR'||p==='INSPECTOR'||p==='INSPEKTOR')return 'OPT';
+  if(p==='CELL LEADER'||p==='CL')return 'CL';
+  return 'NONE';
+}
+const planEmpty=(date,shift)=>!planOf(date,shift).length;
+const planEmptyMsg=(date,shift)=>'AUTO-ASSIGN DITOLAK: Line Aktif Harian belum disimpan untuk '+date+', '+shift+'. Centang line yang produksi dan simpan plan, lalu tempatkan manual dari Tunggu Line.';
+const noAutoMsg=e=>'Position '+(T(e&&e.Position)||'-')+' tidak ditempatkan otomatis (auto-assign hanya untuk OPERATOR dan CELL LEADER). Absensi tercatat; tempatkan manual bila perlu.';
+
+/* Gate untuk drag-drop: kembalikan {proceed, overridden, reason}. */
+function gate(empId,line,process){
+  const issues=[],emp=findEmp(empId),pr=process?proc(process):'';
+  if(!targets(empId).length)issues.push('Belum memiliki Skill Matrix.');
+  else if(pr){if(!hasSkill(empId,line,pr))issues.push('Belum punya skill '+pr+' pada '+line+'. Skill pada line ini: '+(lineSkills(empId,line).join(', ')||'tidak ada')+'.')}
+  else if(!lineSkills(empId,line).length)issues.push('Belum punya skill apa pun pada '+line+'.');
+  if(emp){
+    const role=autoRole(emp);
+    if(/^CELL LEADER/.test(pr)&&role!=='CL')issues.push('Position '+(emp.Position||'-')+' bukan CELL LEADER.');
+    else if(!/^CELL LEADER/.test(pr)&&role==='NONE')issues.push('Position '+emp.Position+' biasanya tidak ditempatkan di slot produksi.');
+  }
+  if(!issues.length)return {proceed:true,overridden:false,reason:''};
+  const bullets=issues.map(x=>'• '+x).join('\n'),role=typeof currentUser!=='undefined'&&currentUser?currentUser.role:'';
+  if(!['ADMIN','SUPERVISOR'].includes(role)){alert('PENEMPATAN DITAHAN\n\n'+bullets+'\n\nHanya ADMIN atau SUPERVISOR yang boleh melanjutkan penempatan dengan peringatan.');return {proceed:false}}
+  const reason=prompt('PERINGATAN\n\n'+bullets+'\n\nTetap tempatkan? Masukkan alasan (minimal 5 karakter):');
+  if(reason===null)return {proceed:false};
+  if(T(reason).length<5){alert('Alasan override minimal 5 karakter.');return {proceed:false}}
+  if(typeof audit==='function')audit('OVERRIDE SKILL '+empId+' -> '+line+' / '+(pr||'-')+' | '+issues.join(' ')+' | Alasan: '+T(reason));
+  return {proceed:true,overridden:true,reason:T(reason)};
+}
+function withAutoConfirm(fn){const oc=window.confirm;window.confirm=()=>true;try{return fn()}finally{window.confirm=oc}}
+
+window.mppSkillRules={proc,convertRows,targets,hasSkill,lineSkills,slotReason,autoRole,planEmpty,planEmptyMsg,noAutoMsg,gate};
+
+/* Drag-drop: pindah proses dalam/antar line untuk karyawan yang sudah ditempatkan. */
+if(typeof v2381Move==='function'){
+  window.v2381Move=function(a,line,process,date,shift){
+    process=proc(process);
+    if(T(a.line)===T(line)&&proc(display(a.job))===process&&!isExtra(a.job))return alert('Karyawan sudah berada pada '+line+' / '+process+'.');
+    const g=gate(a.emp,line,process);if(!g.proceed)return false;
+    const occupied=v2381ProcessOccupied(line,date,shift,process,a),job=occupied?'EXTRA - '+process+' #'+v238ExtraNumber(line,date,shift,process,a):process,oldLine=a.line,oldJob=a.job;
+    if(!g.overridden&&!confirm('SMART SKILL MOVE\n\n'+a.emp+' - '+a.name+'\nDari: '+oldLine+' / '+display(oldJob)+'\nKe: '+line+' / '+display(job)+(occupied?'\n\nProses sudah terisi. Ditempatkan sebagai manpower tambahan.':'')))return false;
+    a.line=line;a.job=job;a.skillProcess=process;a.skillStatus=g.overridden?'MANUAL_OVERRIDE':'MATCH';a.overrideReason=g.reason||'';a.isExtra=occupied;
+    a.assignmentSource=g.overridden?'MANUAL_OVERRIDE_MOVE':(occupied?'MULTI_SKILL_EXTRA':'MULTI_SKILL_MOVE');a.movedAt=new Date().toISOString();a.movedBy=currentUser&&currentUser.username;
+    const att=attendance.find(x=>x.emp===a.emp&&x.date===date&&x.shift===shift&&!x.out);
+    if(att){att.line=line;att.job=job;att.skillProcess=process;att.status=occupied?'CHECK IN - SKILL EXTRA':(g.overridden?'CHECK IN - MANUAL OVERRIDE':'CHECK IN - SKILL MOVED')}
+    audit('MULTI SKILL MOVE '+a.emp+' '+oldLine+' / '+oldJob+' -> '+line+' / '+job+(g.overridden?' | OVERRIDE':''));
+    localStorage.setItem('mpp23assign',JSON.stringify(assigns));localStorage.setItem('mpp25attendance',JSON.stringify(attendance));
+    renderThreeShiftDashboard();return true;
+  };
+}
+
+/* Drag-drop: karyawan yang sudah ditempatkan dijatuhkan ke kartu line (tanpa memilih proses). */
+if(typeof v234Drop==='function'){
+  const baseDrop=window.v234Drop;
+  window.v234Drop=function(ev){
+    try{
+      const waiting=typeof v2409WaitingPayload==='function'?v2409WaitingPayload(ev):null;
+      if(!waiting&&(typeof v234CanMove!=='function'||v234CanMove())){
+        const card=ev.currentTarget,idx=typeof v2381AssignmentIndex==='function'?v2381AssignmentIndex(ev):-1,a=assigns[idx];
+        if(a&&card&&card.dataset&&T(a.line)!==T(card.dataset.line)&&T(a.date)===T(card.dataset.date)&&T(a.shift)===T(card.dataset.shift)){
+          const g=gate(a.emp,T(card.dataset.line),null);
+          if(!g.proceed){ev.preventDefault();return}
+          if(g.overridden)return withAutoConfirm(()=>baseDrop.call(this,ev));
+        }
+      }
+    }catch(err){console.warn('mppSkillRules v234Drop',err)}
+    return baseDrop.apply(this,arguments);
+  };
+}
 })();
 </script>
 </body></html>
